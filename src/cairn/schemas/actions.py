@@ -27,9 +27,10 @@ class ActionItem(BaseModel):
 
     @model_validator(mode="after")
     def _completion_fields_consistent(self) -> ActionItem:
-        if self.status == "complete":
-            if self.completed_at is None or self.completed_by is None:
-                raise ValueError(
-                    "completed action items require both completed_at and completed_by"
-                )
+        if self.status == "complete" and (
+            self.completed_at is None or self.completed_by is None
+        ):
+            raise ValueError(
+                "completed action items require both completed_at and completed_by"
+            )
         return self

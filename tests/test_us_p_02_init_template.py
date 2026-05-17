@@ -68,7 +68,8 @@ def test_us_p_02_defaults_to_bundled_template(cwd: Path):
 def test_us_p_02_url_template_without_extra_errors_helpfully(cwd: Path, monkeypatch):
     """If cookiecutter isn't installed, --template <url> says so clearly."""
     import sys
-    monkeypatch.setitem(sys.modules, "cookiecutter", None)  # force ImportError on `from cookiecutter...`
+    # Force ImportError on `from cookiecutter.main import cookiecutter`.
+    monkeypatch.setitem(sys.modules, "cookiecutter", None)
     monkeypatch.setitem(sys.modules, "cookiecutter.main", None)
     result = runner.invoke(
         app,

@@ -6,6 +6,7 @@ The substrate is git; this module is intentionally thin.
 
 from __future__ import annotations
 
+import contextlib
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -42,10 +43,8 @@ def _from_repo_or_global(repo: Repo | None) -> Identity | None:
     candidates = []
     if repo is not None:
         candidates.append(repo.config_reader())
-    try:
+    with contextlib.suppress(Exception):
         candidates.append(Repo.config_reader("global"))
-    except Exception:
-        pass
     for reader in candidates:
         try:
             name = reader.get_value("user", "name")

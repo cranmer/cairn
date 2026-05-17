@@ -8,7 +8,7 @@ import typer
 
 from ..errors import CairnError
 from ..git_ops import commit, get_user_identity, init_repo
-from ..paths import CairnPaths, REQUIRED_DIRS, STATE_FILES
+from ..paths import REQUIRED_DIRS, STATE_FILES, CairnPaths
 from ..template import default_template_root, render_from_path, render_from_url
 
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from pydantic import BeforeValidator, PlainSerializer, StringConstraints
@@ -23,17 +23,13 @@ def _ensure_utc(value: datetime | str) -> datetime:
         if text.endswith("Z"):
             text = text[:-1] + "+00:00"
         value = datetime.fromisoformat(text)
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    else:
-        value = value.astimezone(timezone.utc)
-    return value
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 def _serialize_utc(value: datetime) -> str:
     """Serialize a datetime as RFC 3339 with ``Z`` suffix."""
-    aware = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
-    aware = aware.astimezone(timezone.utc)
+    aware = value if value.tzinfo else value.replace(tzinfo=UTC)
+    aware = aware.astimezone(UTC)
     text = aware.isoformat(timespec="seconds")
     if text.endswith("+00:00"):
         text = text[:-6] + "Z"
