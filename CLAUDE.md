@@ -22,16 +22,15 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 **Phase 0 (Foundation) is complete.** Shipped: the canonical template at `templates/default/`, Pydantic v2 schemas for the five state files, and the CLI commands `cairn init`, `cairn collaborator add`, `cairn decision add`, `cairn validate`, `cairn status` (US-P-01 through US-P-06). 64 tests passing. See `docs/decisions/` for ADRs locking in YAML library, git library, template engine, and ID/timestamp conventions.
 
-**Phase 1 — Agent skills + supporting commands — is the current focus.** Goal: make a cairn useful inside a Claude Code session by bundling skills that read and write through the structure Phase 0 built. Targets:
+**Phase 1 — Agent skills + supporting commands — is the current focus.** Goal: make a cairn useful inside a Claude Code session by bundling Claude Code-style `SKILL.md` files that read and write through the structure Phase 0 built. Targets:
 
 - Bundled `SKILL.md` files in `templates/default/skills/` so newly-scaffolded cairns ship with them.
 - US-A-01: Orient at session start — agent reads `PROJECT.md` + `state/collaborators.yaml`, identifies the user, produces a coherent summary citing recent decisions and open questions.
-- US-A-02: Log a finding mid-session — needs a Finding format (file under `knowledge/findings/<date>-<slug>.md` with frontmatter) and a `cairn finding add` command.
 - US-A-03: Create an exploration branch — `cairn branch start <description>` creates `<user-id>/<kebab>` branch, updates `branches/README.md`, writes a branch manifest.
 - US-A-04: Mark an action item complete — needs `cairn action add` and `cairn action complete <id>` (the `ActionItem` schema already exists from Phase 0).
 - US-A-05: Search prior discussions — pure local file scan; can ship as a skill alone.
 
-Note on phase numbering: ARCHITECTURE.md §Build Path uses different phase labels (Phase 0 = discovery, Phase 1 = template, Phase 2 = Python package). This document and the README track the actual execution plan, which re-groups them. The content is the same; only the numbering differs.
+US-A-02 (log a finding mid-session) is deferred to Phase 2, alongside the other knowledge-base-writing primitives.
 
 Out of scope until later phases: MCP server (Phase 3), meeting capture automation (Phase 4), AI collaborator runtime with scheduling/permissions enforcement (Phase 5), voice mode (Phase 6), artifact export (Phase 2 / US-P-08), meeting import (Phase 2 / US-P-07). Don't speculatively scaffold these.
 

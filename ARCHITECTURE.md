@@ -216,14 +216,16 @@ A "personal" meta-repo per collaborator, listing the projects they're on as subm
 
 ## Build Path
 
-### Phase 0 — Discovery (week 1-2)
-Build the repository structure by hand for one real project. Use it for actual meetings. Refine the schema as you go.
+The phasing below tracks the actual execution plan. (An earlier draft of this section used different phase numbers — `Phase 0 = discovery`, `Phase 1 = template`, `Phase 2 = Python package` — borrowed from the original time-budgeted plan. The current numbering, also reflected in `README.md` and `CLAUDE.md`, re-groups them by what gets shipped together.)
 
-### Phase 1 — Template (month 2-3)
-Once the structure feels stable, convert it into a cookiecutter template for spinning up new projects.
+### Phase 0 — Foundation *(done)*
+Canonical cairn template at `templates/default/`, Pydantic v2 schemas for the five state files, and the CLI commands `cairn init`, `cairn collaborator add`, `cairn decision add`, `cairn validate`, `cairn status`. Covers user stories US-P-01 through US-P-06. The Python package is the canonical tooling for creating and working with cairns; cookiecutter-style templates remain supported via `cairn init --template <path-or-url>`.
 
-### Phase 2 — Python package (month 4+)
-Introduce the `cairn` Python package — the canonical tooling for creating and working with cairns. It provides schema validation, parsers, helpers, and a `cairn init` command for scaffolding new instances (subsuming the cookiecutter step). The package may also include utilities for querying state, validating commits, and assisting with merges. It codifies what's stable; it doesn't grow features speculatively.
+### Phase 1 — Agent skills + supporting commands *(current)*
+Make a cairn useful inside a Claude Code session by bundling `SKILL.md` files in `templates/default/skills/` (the standard Claude Code skill format), and add the small set of CLI primitives those skills need. Target stories: US-A-01 (orient at session start), US-A-03 (create an exploration branch — requires `cairn branch start`), US-A-04 (mark an action item complete — requires `cairn action add` and `cairn action complete`), US-A-05 (search prior discussions). Skills land at the framework level and ship into new cairns through `cairn init`.
+
+### Phase 2 — Python package extensions
+Meeting import (US-P-07), artifact export to ASTRA / ARA / RO-Crate (US-P-08), and agenda draft (US-P-09). Also other small helpers as patterns settle.
 
 ### Phase 3 — MCP server
 Add a centralized MCP server that reads from the repo, maintains a vector index, and exposes semantic tools. Now Claude Code sessions can call into it from anywhere.
@@ -232,7 +234,7 @@ Add a centralized MCP server that reads from the repo, maintains a vector index,
 Add the meeting capture module: streaming Whisper, pyannote diarization, automated commits to `knowledge/meetings/`.
 
 ### Phase 5 — AI collaborators
-Add the first AI collaborator (literature monitor). Evaluate. Add more as warranted.
+Add the first AI collaborator (literature monitor). Evaluate. Add more as warranted. Requires the scheduling and permissions runtime that enforces what AI collaborators declared in `state/collaborators.yaml` are allowed to write.
 
 ### Phase 6 — Interactive voice mode (long-term)
 Voice-mode AI participant in meetings, using the same Cairn interface as everything else.
