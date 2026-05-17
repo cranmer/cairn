@@ -23,7 +23,8 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 | Document | Purpose |
 |----------|---------|
-| [QUICKSTART.md](QUICKSTART.md) | Five-minute install + first cairn |
+| [QUICKSTART.md](QUICKSTART.md) | Five-minute install + first cairn (human-driven) |
+| [AGENT-BOOTSTRAP.md](AGENT-BOOTSTRAP.md) | Paste-into-Claude-Code instructions for agent-driven setup |
 | [docs/overview.html](docs/overview.html) | Polished overview for sharing with colleagues |
 | [docs/splash.html](docs/splash.html) | Single-page introduction |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Design document — principles, components, build path |

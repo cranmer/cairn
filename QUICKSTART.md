@@ -2,6 +2,8 @@
 
 A five-minute path from a clean clone to a working cairn.
 
+> **Want your agent to do this for you?** See [`AGENT-BOOTSTRAP.md`](AGENT-BOOTSTRAP.md). Paste that file into a fresh Claude Code session and the agent will install Cairn, scaffold a new cairn, and register you as the first collaborator — pausing for your confirmation at each major step.
+
 ## 1. Install
 
 Requires **Python ≥ 3.11** and `git` on PATH.

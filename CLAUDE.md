@@ -37,7 +37,7 @@ Out of scope until later phases: MCP server (Phase 3), meeting capture automatio
 
 Carried items that are not blocking a phase but should be picked up when convenient:
 
-- **Agent-driven bootstrap doc** (`AGENT-BOOTSTRAP.md` at the repo root): a single markdown file a user can paste into a fresh Claude Code session to have the agent install Cairn, configure git identity, scaffold a new cairn, and register the user as the first collaborator — without the user running `git clone` or `pip install` by hand. Should pin which approval points the agent must pause on (install location, project directory, identity values) vs do autonomously. Distribution path is `pip install git+https://github.com/cranmer/cairn` until Cairn is on PyPI. Once written, link it from `QUICKSTART.md` as the "I want my agent to do this" alternative path.
+- ~~Agent-driven bootstrap doc~~ — *done*. `AGENT-BOOTSTRAP.md` lives at the repo root and is linked from `QUICKSTART.md`.
 
 ## Development conventions
 
