@@ -24,12 +24,12 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 **Phase 1 (Agent skills + supporting commands) is complete.** Shipped: `cairn branch start`, `cairn action add`, `cairn action complete`, and four bundled Claude Code-style `SKILL.md` files in `templates/default/skills/` (`orient`, `search-history`, `start-branch`, `complete-action`) that ship into newly-scaffolded cairns via `cairn init`. Covers US-A-01, US-A-03, US-A-04, US-A-05. 85 tests passing.
 
-**Phase 2 — Python package extensions — is the next focus.** Targets:
+**Phase 2 — Python package extensions — is in progress.** Targets and status:
 
-- US-P-07: Meeting import — `cairn meeting import --from zoom <file>` produces `knowledge/meetings/YYYY-MM-DD.md` with frontmatter and an optional `<date>-staged.yaml` of inferred decisions / action items for human review.
-- US-P-08: Artifact export — `cairn artifact export --format <astra|ara|ro-crate>` produces a directory in the chosen specification's layout. Stubs that pass schema validation are acceptable early.
-- US-P-09: Agenda draft — `cairn agenda draft --since <date|last-meeting>` writes a markdown agenda assembled from flagged items, branches needing review, recent open questions, due action items, and recent findings.
-- US-A-02 + `cairn finding add`: a finding format (file under `knowledge/findings/YYYY-MM-DD-<slug>.md` with frontmatter) and the matching skill.
+- [x] US-A-02 + `cairn finding add`: finding files at `knowledge/findings/YYYY-MM-DD-<slug>.md` with YAML frontmatter (date, author, title, slug, related, branch). Bundled `log-finding` skill in `templates/default/skills/`. `cairn validate` checks finding filenames, frontmatter schema, author/related cross-references.
+- [ ] US-P-07: Meeting import — `cairn meeting import --from zoom <file>` produces `knowledge/meetings/YYYY-MM-DD.md` with frontmatter and an optional `<date>-staged.yaml` of inferred decisions / action items for human review.
+- [ ] US-P-08: Artifact export — `cairn artifact export --format <astra|ara|ro-crate>` produces a directory in the chosen specification's layout. Stubs that pass schema validation are acceptable early.
+- [ ] US-P-09: Agenda draft — `cairn agenda draft --since <date|last-meeting>` writes a markdown agenda assembled from flagged items, branches needing review, recent open questions, due action items, and recent findings.
 
 Out of scope until later phases: MCP server (Phase 3), meeting capture automation (Phase 4), AI collaborator runtime with scheduling/permissions enforcement (Phase 5), voice mode (Phase 6), artifact export (Phase 2 / US-P-08), meeting import (Phase 2 / US-P-07). Don't speculatively scaffold these.
 

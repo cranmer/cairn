@@ -54,9 +54,14 @@ cairn collaborator add --id maria --name "Maria Santos" --role postdoc \
 cairn decision add --author you \
                    --text   "Use stratified resampling for the imbalanced classes" \
                    --context "Discussed in meeting; alternative was SMOTE"
+
+cairn action add --assignee maria --text "rerun model on rare-class subset" --due-date 2026-06-01
+cairn finding add --author you \
+                  --title "Stratified resampling beats SMOTE on rare events" \
+                  --related D-001
 ```
 
-Each command stages and commits its change, attributed to you. The decision is auto-assigned `D-001` with a UTC ISO 8601 timestamp.
+Each command stages and commits its change, attributed to you. The decision is auto-assigned `D-001`, the action `A-001`, with UTC ISO 8601 timestamps. The finding lands at `knowledge/findings/<today>-stratified-resampling-beats-smote-on-rare-events.md`.
 
 ## 5. Inspect
 

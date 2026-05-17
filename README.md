@@ -79,11 +79,11 @@ cairn/
   - US-A-03: Create an exploration branch (`cairn branch start`)
   - US-A-04: Mark an action item complete (`cairn action add` + `cairn action complete`)
   - US-A-05: Search prior discussions (skill — local file scan)
-- [ ] **Phase 2 — Python package extensions**
-  - Meeting import (US-P-07)
-  - Artifact export — ASTRA / ARA / RO-Crate (US-P-08)
-  - Agenda draft (US-P-09)
-  - Log a finding mid-session — `cairn finding add` + supporting US-A-02 skill
+- [ ] **Phase 2 — Python package extensions** *(in progress)*
+  - [x] Log a finding mid-session — `cairn finding add` + `log-finding` skill (US-A-02)
+  - [ ] Meeting import (US-P-07)
+  - [ ] Artifact export — ASTRA / ARA / RO-Crate (US-P-08)
+  - [ ] Agenda draft (US-P-09)
 - [ ] **Phase 3** — MCP server alongside the repo
 - [ ] **Phase 4** — Meeting capture (Whisper + pyannote diarization)
 - [ ] **Phase 5** — AI collaborator runtime (literature monitor, etc.)
@@ -101,6 +101,7 @@ Once installed (`pip install -e ".[dev]"`):
 | `cairn action add` | Add an action item with assignee, optional due date, and related-ID validation |
 | `cairn action complete <id>` | Mark an action complete; records completion time and completer (keeps history) |
 | `cairn branch start "<desc>"` | Create `<user-id>/<kebab>` branch + manifest, update `branches/README.md` |
+| `cairn finding add` | Write `knowledge/findings/YYYY-MM-DD-<slug>.md` with YAML frontmatter and commit it |
 | `cairn validate` | Check schemas, cross-references, and meeting filenames; non-zero exit on errors |
 | `cairn status` | Compact summary of open questions, actions, branches, recent decisions; supports `--json` and `--branch` |
 | `cairn version` | Print the package version |
