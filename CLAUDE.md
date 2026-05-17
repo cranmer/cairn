@@ -22,15 +22,14 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 **Phase 0 (Foundation) is complete.** Shipped: the canonical template at `templates/default/`, Pydantic v2 schemas for the five state files, and the CLI commands `cairn init`, `cairn collaborator add`, `cairn decision add`, `cairn validate`, `cairn status` (US-P-01 through US-P-06). 64 tests passing. See `docs/decisions/` for ADRs locking in YAML library, git library, template engine, and ID/timestamp conventions.
 
-**Phase 1 — Agent skills + supporting commands — is the current focus.** Goal: make a cairn useful inside a Claude Code session by bundling Claude Code-style `SKILL.md` files that read and write through the structure Phase 0 built. Targets:
+**Phase 1 (Agent skills + supporting commands) is complete.** Shipped: `cairn branch start`, `cairn action add`, `cairn action complete`, and four bundled Claude Code-style `SKILL.md` files in `templates/default/skills/` (`orient`, `search-history`, `start-branch`, `complete-action`) that ship into newly-scaffolded cairns via `cairn init`. Covers US-A-01, US-A-03, US-A-04, US-A-05. 85 tests passing.
 
-- Bundled `SKILL.md` files in `templates/default/skills/` so newly-scaffolded cairns ship with them.
-- US-A-01: Orient at session start — agent reads `PROJECT.md` + `state/collaborators.yaml`, identifies the user, produces a coherent summary citing recent decisions and open questions.
-- US-A-03: Create an exploration branch — `cairn branch start <description>` creates `<user-id>/<kebab>` branch, updates `branches/README.md`, writes a branch manifest.
-- US-A-04: Mark an action item complete — needs `cairn action add` and `cairn action complete <id>` (the `ActionItem` schema already exists from Phase 0).
-- US-A-05: Search prior discussions — pure local file scan; can ship as a skill alone.
+**Phase 2 — Python package extensions — is the next focus.** Targets:
 
-US-A-02 (log a finding mid-session) is deferred to Phase 2, alongside the other knowledge-base-writing primitives.
+- US-P-07: Meeting import — `cairn meeting import --from zoom <file>` produces `knowledge/meetings/YYYY-MM-DD.md` with frontmatter and an optional `<date>-staged.yaml` of inferred decisions / action items for human review.
+- US-P-08: Artifact export — `cairn artifact export --format <astra|ara|ro-crate>` produces a directory in the chosen specification's layout. Stubs that pass schema validation are acceptable early.
+- US-P-09: Agenda draft — `cairn agenda draft --since <date|last-meeting>` writes a markdown agenda assembled from flagged items, branches needing review, recent open questions, due action items, and recent findings.
+- US-A-02 + `cairn finding add`: a finding format (file under `knowledge/findings/YYYY-MM-DD-<slug>.md` with frontmatter) and the matching skill.
 
 Out of scope until later phases: MCP server (Phase 3), meeting capture automation (Phase 4), AI collaborator runtime with scheduling/permissions enforcement (Phase 5), voice mode (Phase 6), artifact export (Phase 2 / US-P-08), meeting import (Phase 2 / US-P-07). Don't speculatively scaffold these.
 

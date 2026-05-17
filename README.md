@@ -48,6 +48,8 @@ cairn/
 │   └── decisions/                 # ADRs (YAML library, git library, etc.)
 ├── templates/
 │   └── default/                   # canonical cairn template (cookiecutter layout)
+│       └── {{cookiecutter.project_name}}/
+│           └── skills/            # bundled SKILL.md files (orient, search-history, …)
 ├── src/cairn/                     # Python package source
 │   ├── schemas/                   # Pydantic v2 models for the five state files
 │   ├── io/                        # YAML load/dump + state-file I/O
@@ -71,12 +73,12 @@ cairn/
   - State schemas in Pydantic v2 (`src/cairn/schemas/`)
   - `cairn init` (US-P-01, US-P-02)
   - Basic state operations: `cairn collaborator add`, `cairn decision add`, `cairn validate`, `cairn status` (US-P-03 through US-P-06)
-- [ ] **Phase 1 — Agent skills + supporting commands** *(current)*
-  - Bundled `SKILL.md` files in `templates/default/skills/`
-  - US-A-01: Orient at session start (read `PROJECT.md` + `state/collaborators.yaml`)
-  - US-A-03: Create an exploration branch (needs `cairn branch start`)
-  - US-A-04: Mark an action item complete (needs `cairn action add` + `cairn action complete`)
-  - US-A-05: Search prior discussions (local file scan; pure skill)
+- [x] **Phase 1 — Agent skills + supporting commands** *(done)*
+  - Bundled `SKILL.md` files in `templates/default/skills/`: `orient`, `search-history`, `start-branch`, `complete-action`
+  - US-A-01: Orient at session start (reads `PROJECT.md` + `state/collaborators.yaml`, runs `cairn status`)
+  - US-A-03: Create an exploration branch (`cairn branch start`)
+  - US-A-04: Mark an action item complete (`cairn action add` + `cairn action complete`)
+  - US-A-05: Search prior discussions (skill — local file scan)
 - [ ] **Phase 2 — Python package extensions**
   - Meeting import (US-P-07)
   - Artifact export — ASTRA / ARA / RO-Crate (US-P-08)
@@ -96,6 +98,9 @@ Once installed (`pip install -e ".[dev]"`):
 | `cairn init <name>` | Scaffold a new cairn from the bundled template or `--template <path-or-url>` |
 | `cairn collaborator add` | Register a human or AI collaborator (flags or `--yaml` bulk) |
 | `cairn decision add` | Record a decision with auto ID, UTC timestamp, and cross-reference validation |
+| `cairn action add` | Add an action item with assignee, optional due date, and related-ID validation |
+| `cairn action complete <id>` | Mark an action complete; records completion time and completer (keeps history) |
+| `cairn branch start "<desc>"` | Create `<user-id>/<kebab>` branch + manifest, update `branches/README.md` |
 | `cairn validate` | Check schemas, cross-references, and meeting filenames; non-zero exit on errors |
 | `cairn status` | Compact summary of open questions, actions, branches, recent decisions; supports `--json` and `--branch` |
 | `cairn version` | Print the package version |
