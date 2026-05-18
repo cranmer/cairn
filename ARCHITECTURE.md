@@ -27,23 +27,27 @@ Existing tools cover individual pieces (meeting transcription, knowledge bases, 
 
 ## Architectural Principles
 
-### 1. The repository is the source of truth
+### 1. Augmentation, not replacement
+
+Cairn does not redirect how collaborators work. They keep using their normal tools — git, Zoom, Slack, email, paper, conversation — at their normal rhythm. An agent listens in those native channels and writes structured notes into the cairn as a side effect. The agent's role is *facilitator, not stenographer*: it may ask focused clarifying questions in service of accurate capture, but never proposes new rituals, session-switching, or workflows the user wouldn't have done anyway. The test, when designing any feature: would a thoughtful new collaborator joining the project naturally be doing this same thing? See `docs/decisions/0007-augmentation-not-replacement.md`.
+
+### 2. The repository is the source of truth
 
 All canonical project state lives in a git repository. Every other component — agents, indices, MCP servers, dashboards, automations — is a derived view or interface layer that reads from and proposes writes to the repo. No component owns state that isn't reflected in the repo.
 
-### 2. Derived systems are disposable
+### 3. Derived systems are disposable
 
 Because the repo holds truth, any derived system can be rebuilt or replaced without compromising the substrate. Vector indices can be regenerated. MCP servers can be swapped. Agent frameworks can change. The project survives them all.
 
-### 3. Uniform collaborator abstraction
+### 4. Uniform collaborator abstraction
 
 Human and AI collaborators interact with the system through the same interfaces (git operations, optionally MCP tool calls). Identity differs; mechanism does not. This makes adding new kinds of contributors (a critique agent, a literature monitor, a guest collaborator) a configuration change rather than an architectural one.
 
-### 4. Branches as first-class
+### 5. Explorations as first-class (optional)
 
-Parallel exploration is encouraged via git branches. A collaborator can pursue a line of inquiry that diverges from main without polluting canonical project state. Branches converge back to main through explicit merge proposals, which become both a review opportunity and an artifact of the group's reasoning over time.
+Parallel exploration is *supported* via cairn explorations — a tracked alternative line of inquiry materialized as a git branch in the cairn repo, with an `explorations/<name>.md` manifest recording rationale, and an explicit merge moment that becomes both a review opportunity and a durable artifact. Explorations are an optional augmentation, not a required workflow step: a user who tracks every parallel line of inquiry via project-repo git branches and never creates a cairn exploration is using Cairn correctly. The concept (and the `cairn exploration` CLI) exists for cases where the rationale itself is the artifact worth preserving — typically design alternatives, methodology choices, or branching investigations whose comparison matters beyond their individual results. See `docs/decisions/0008-client-server-and-exploration-rename.md`.
 
-### 5. Layered consumption matches layered distribution
+### 6. Layered consumption matches layered distribution
 
 Different kinds of context warrant different distribution mechanisms:
 - **Skills** (procedural knowledge): replicated locally via git, read from disk

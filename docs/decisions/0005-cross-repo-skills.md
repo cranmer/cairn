@@ -1,6 +1,8 @@
 # 0005 — Cross-repo skills distribution (Mode A for v0; Mode B as B1, deferred)
 
-> **Note (superseded in part):** the four-step resolution sketch in the B1 section below has been replaced by ADR-0006, which redesigns discovery around a `.cairn` root marker, a `cairn.toml` project-repo pointer file, and a `CairnTarget` abstraction for future MCP backends. The B1-vs-B2-vs-B3 decision and the Mode A v0 commitment in this ADR still stand.
+> **Note (superseded in part — twice over):**
+> - ADR-0006 replaced the four-step resolution sketch in the B1 section below with a discovery design built around a `.cairn` root marker, a `cairn.toml` project-repo pointer file, and a `CairnTarget` abstraction for future MCP backends. The B1-vs-B2-vs-B3 decision in this ADR still stands.
+> - ADR-0008 supersedes the "Mode A v0 commitment" in this ADR's Decision section. The Mode A/B labels are renamed to **server mode** and **client mode** respectively, and **client mode is now primary** (not Mode A). The StellaForge UX experiment provided the "real users reporting two-session friction" trigger this ADR called out as the criterion for revisiting. Stage 2 (`cairn link`) and Stage 3 (`cairn skills install`) are what make client mode work; until then, the workaround posture described in this ADR applies but is no longer the destination.
 
 ## Context
 
