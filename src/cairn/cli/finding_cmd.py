@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import typer
@@ -98,7 +98,7 @@ def add(
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from None
 
-    now = datetime.now(UTC).replace(microsecond=0)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
     date_str = now.date().isoformat()
     filename = f"{date_str}-{final_slug}.md"
     target = paths.findings / filename

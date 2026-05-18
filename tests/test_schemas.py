@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 
 import pytest
 from pydantic import ValidationError
@@ -57,7 +57,7 @@ def test_decision_roundtrip_utc():
         context="Discussed in meeting",
         related=["Q-007"],
     )
-    assert d.date == datetime(2026, 4, 22, 15, 30, tzinfo=UTC)
+    assert d.date == datetime(2026, 4, 22, 15, 30, tzinfo=timezone.utc)
     dumped = d.model_dump(mode="json")
     assert dumped["date"] == "2026-04-22T15:30:00Z"
 
@@ -69,7 +69,7 @@ def test_decision_naive_datetime_assumed_utc():
         author="kyle",
         decision="x",
     )
-    assert d.date.tzinfo is UTC
+    assert d.date.tzinfo is timezone.utc
 
 
 def test_decision_id_pattern():

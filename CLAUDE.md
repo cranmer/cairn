@@ -41,7 +41,7 @@ Carried items that are not blocking a phase but should be picked up when conveni
 
 ## Development conventions
 
-- **Python 3.11+**.
+- **Python 3.10+**.
 - **Environment management**: pixi (preferred — the project lead uses it; tooling that works under pixi will work under uv/conda too).
 - **Schema validation**: Pydantic v2 for state file schemas. Schemas in `src/cairn/schemas/`.
 - **CLI**: Typer.

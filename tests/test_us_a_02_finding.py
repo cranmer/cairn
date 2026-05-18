@@ -44,7 +44,7 @@ def test_us_a_02_writes_file_with_frontmatter(cwd: Path, monkeypatch: pytest.Mon
 
 
 def test_us_a_02_filename_uses_date_and_slug(cwd: Path, monkeypatch: pytest.MonkeyPatch):
-    from datetime import UTC, datetime
+    from datetime import datetime, timezone
 
     root = _bootstrap(cwd, monkeypatch)
     runner.invoke(
@@ -52,7 +52,7 @@ def test_us_a_02_filename_uses_date_and_slug(cwd: Path, monkeypatch: pytest.Monk
         ["finding", "add", "--author", "kyle", "--title", "X Y Z"],
         catch_exceptions=False,
     )
-    today = datetime.now(UTC).date().isoformat()
+    today = datetime.now(timezone.utc).date().isoformat()
     expected = root / "knowledge" / "findings" / f"{today}-x-y-z.md"
     assert expected.is_file()
 

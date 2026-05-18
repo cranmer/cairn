@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import typer
 from git import Repo
@@ -64,7 +64,7 @@ def add(
             raise typer.Exit(code=1)
 
     new_id = next_id("D", state.decision_ids())
-    now = datetime.now(UTC).replace(microsecond=0)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
     try:
         new_decision = Decision.model_validate(
             {

@@ -114,7 +114,7 @@ Once installed (`pip install -e ".[dev]"`):
 This repo is being developed with [Claude Code](https://claude.com/claude-code). When you open it in Claude Code, the agent reads `CLAUDE.md` automatically — it provides orientation, conventions, and the current phase's priorities.
 
 **Stack:**
-- Python 3.11+
+- Python 3.10+
 - Environment: [pixi](https://pixi.sh/) (preferred), uv, or conda
 - Linting/formatting: [ruff](https://docs.astral.sh/ruff/)
 - Schema validation: [Pydantic](https://docs.pydantic.dev/) v2

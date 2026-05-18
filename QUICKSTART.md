@@ -6,7 +6,7 @@ A five-minute path from a clean clone to a working cairn.
 
 ## 1. Install
 
-Requires **Python ≥ 3.11** and `git` on PATH.
+Requires **Python ≥ 3.10** and `git` on PATH.
 
 ```sh
 git clone https://github.com/cranmer/cairn.git

@@ -6,7 +6,7 @@ If the user has already created a cairn and just wants you to orient inside it, 
 
 ## What you're going to do
 
-1. Verify the user has Python ≥ 3.11 and `git` on PATH.
+1. Verify the user has Python ≥ 3.10 and `git` on PATH.
 2. Install the `cairn` package (from GitHub, since Cairn is not yet on PyPI).
 3. Confirm or set the user's git identity.
 4. Scaffold a new cairn at a location the user agrees to.
@@ -18,7 +18,7 @@ If the user has already created a cairn and just wants you to orient inside it, 
 Run both, in parallel:
 
 ```sh
-python --version    # need >= 3.11
+python --version    # need >= 3.10
 git --version       # any recent version
 ```
 

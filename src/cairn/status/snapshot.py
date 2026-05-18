@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import yaml
 from git import Repo
@@ -78,7 +78,7 @@ def _branches_summary(repo: Repo) -> list[BranchSummary]:
         if head.name in main_names:
             continue
         commit = head.commit
-        ts = datetime.fromtimestamp(commit.committed_date, tz=UTC).date().isoformat()
+        ts = datetime.fromtimestamp(commit.committed_date, tz=timezone.utc).date().isoformat()
         # If branch is "<id>/<rest>", surface the leading id as owner.
         owner = head.name.split("/", 1)[0] if "/" in head.name else None
         summary.append(BranchSummary(name=head.name, owner=owner, last_commit=ts))
@@ -165,7 +165,7 @@ def build_status(
     branch: str | None = None,
     today: date | None = None,
 ) -> StatusSnapshot:
-    today = today or datetime.now(UTC).date()
+    today = today or datetime.now(timezone.utc).date()
     branch_name = branch or "main"
     repo = Repo(paths.root)
 

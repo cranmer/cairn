@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import typer
@@ -109,7 +109,7 @@ def start(
         )
         raise typer.Exit(code=1)
 
-    today = datetime.now(UTC).date().isoformat()
+    today = datetime.now(timezone.utc).date().isoformat()
     manifest_path = paths.branches / as_id / f"{slug}.md"
 
     # 1. Update branches/README.md on the current branch (typically main).
@@ -351,7 +351,7 @@ def close(
         )
         raise typer.Exit(code=1)
 
-    closed_at = datetime.now(UTC).date().isoformat()
+    closed_at = datetime.now(timezone.utc).date().isoformat()
     merge_sha: str | None = None
     if status == "merged":
         try:

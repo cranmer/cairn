@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 
 import typer
 from git import Repo
@@ -61,7 +61,7 @@ def add(
 
     parsed_due = _parse_due(due_date)
     new_id = next_id("A", state.action_ids())
-    now = datetime.now(UTC).replace(microsecond=0)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
 
     try:
         new_action = ActionItem.model_validate(
@@ -125,7 +125,7 @@ def complete(
         )
         raise typer.Exit(code=1)
 
-    now = datetime.now(UTC).replace(microsecond=0)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
     updated = target.model_copy(
         update={"status": "complete", "completed_at": now, "completed_by": completed_by}
     )
