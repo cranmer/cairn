@@ -24,8 +24,7 @@ dependencies = [
 dev = [
   "pytest>=8",
   "pytest-cov",
-  "ruff>=0.5",
-  "mypy>=1.10",
+  "ruff",
 ]
 cookiecutter = ["cookiecutter>=2.6"]
 
