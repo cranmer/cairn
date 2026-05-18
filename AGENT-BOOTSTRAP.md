@@ -4,6 +4,13 @@
 
 If the user has already created a cairn and just wants you to orient inside it, this file is the wrong one — point them at `QUICKSTART.md` and stop.
 
+## Session affordances you should use
+
+Two things about your Claude Code session that matter for this bootstrap:
+
+- **Working directory persists** across your Bash tool calls. One `cd <project-path>` after the cairn is created is enough — every subsequent command runs in that directory unless you `cd` away. The user shouldn't have to see repeated `cd` lines.
+- **Shell state does NOT persist** between Bash calls. Anything you `source`, `export`, or `conda activate` is gone by the next tool call. This is why we strongly prefer pipx in Step 2: it puts `cairn` on the user's normal PATH so you don't have to fight activation. For the env-based fallback path, see the `.claude/settings.local.json` trick in Step 6.5 — it makes PATH changes durable across your Bash calls.
+
 ## What you're going to do
 
 1. Verify the user has Python ≥ 3.10 and `git` on PATH.
@@ -12,6 +19,7 @@ If the user has already created a cairn and just wants you to orient inside it, 
 4. Scaffold a new cairn at a location the user agrees to.
 5. Register the user as the first collaborator.
 6. Show the user what they have and how to use the bundled skills.
+7. (If env-based install) write `.claude/settings.local.json` so this session lives *inside* the cairn instead of fighting activation.
 
 ## Step 1 — Verify prerequisites
 
@@ -158,9 +166,38 @@ cairn status        # compact summary, <30 lines
 cairn validate      # confirms schema + cross-references are clean
 ```
 
+## Step 6.5 — Make this session live *inside* the cairn (env-based installs only) ★
+
+Skip this step if the user installed via **pipx** in Step 2 — `cairn` is already on the user's normal PATH and no further plumbing is needed; just `cd <project-path>` once and you're done.
+
+For users who picked Option 2 (an existing venv / conda / pixi / uv env), `cairn` only resolves when that env is activated, and your Bash tool resets shell state between calls. The durable fix is to write a `.claude/settings.local.json` file at the cairn root that prepends the env's `bin/` to `PATH`. Claude Code reads this file when a session is opened at (or below) that directory.
+
+1. `cd <project-path>` (one time — the working directory will persist).
+2. Capture the env's `bin/` directory. If you remember the path from Step 2, use it directly. Otherwise: `which cairn` (after activating the env once, e.g., `conda activate cairn`) returns `<env>/bin/cairn`; the relevant directory is the parent.
+3. Write `.claude/settings.local.json` inside the cairn:
+
+   ```json
+   {
+     "env": {
+       "PATH": "/absolute/path/to/env/bin:$PATH"
+     }
+   }
+   ```
+
+4. Add `.claude/settings.local.json` to the cairn's `.gitignore` — this file contains a path specific to the user's machine and shouldn't be shared. Confirm with the user before editing `.gitignore`, then append:
+
+   ```
+   # Claude Code per-user, per-machine settings — paths are local
+   .claude/settings.local.json
+   ```
+
+5. Verify in a fresh Bash call (no env activation) that `cairn --help` now resolves.
+
+Tell the user: *"Future Claude Code sessions opened in this cairn will pick this up automatically. You won't need to activate the env in those sessions either."*
+
 ## What to do if anything fails
 
-- **`cairn` command not found after install**: the install env's `bin/` isn't on PATH. Tell the user; offer to use the absolute path (`~/.venvs/cairn/bin/cairn …`) for the rest of the session.
+- **`cairn` command not found after install**: the install env's `bin/` isn't on PATH. Tell the user; offer to use the absolute path (`~/.venvs/cairn/bin/cairn …`) for the rest of the session, OR write `.claude/settings.local.json` as in Step 6.5.
 - **`cairn init` errors with "no git user identity configured"**: go back to Step 3 and set it; do not invent.
 - **`cairn init` errors with "refusing to overwrite"**: a directory with that name already exists. Ask the user whether to pick a new name or pass `--force` (which deletes the existing directory; warn first).
 - **Any schema or YAML error**: stop, show the user the exact error, and ask how to proceed. Do not edit state files by hand to "fix" them without confirmation.
