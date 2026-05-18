@@ -1,5 +1,7 @@
 # 0005 — Cross-repo skills distribution (Mode A for v0; Mode B as B1, deferred)
 
+> **Note (superseded in part):** the four-step resolution sketch in the B1 section below has been replaced by ADR-0006, which redesigns discovery around a `.cairn` root marker, a `cairn.toml` project-repo pointer file, and a `CairnTarget` abstraction for future MCP backends. The B1-vs-B2-vs-B3 decision and the Mode A v0 commitment in this ADR still stand.
+
 ## Context
 
 A cairn is intentionally a separate git repo from a project's working code/data/paper repos (see README.md, ARCHITECTURE.md §Repository Structure, US-P-10). That means an agent working with a user can be in one of two places when "cairn-relevant" things happen:

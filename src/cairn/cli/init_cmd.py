@@ -8,7 +8,14 @@ import typer
 
 from ..errors import CairnError
 from ..git_ops import commit, disable_signing_if_unable_to_sign, get_user_identity, init_repo
-from ..paths import REQUIRED_DIRS, STATE_FILES, CairnPaths
+from ..paths import (
+    REQUIRED_DIRS,
+    STATE_FILES,
+    CairnPaths,
+    has_marker,
+    is_cairn_root,
+    write_marker,
+)
 from ..template import default_template_root, render_from_path, render_from_url
 
 
@@ -48,6 +55,19 @@ def init(
     except CairnError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from None
+
+    # Idempotent backfill path: if the target is already a cairn (e.g., one
+    # scaffolded before the .cairn marker shipped), don't error and don't
+    # re-render. Just ensure the marker exists and exit cleanly. --force
+    # bypasses this and falls through to the normal overwrite path below.
+    existing = dest_parent / project_name
+    if not force and existing.is_dir() and is_cairn_root(existing):
+        if has_marker(existing):
+            typer.echo(f"{existing} is already a cairn (marker present); nothing to do.")
+        else:
+            write_marker(existing, project_name)
+            typer.echo(f"Backfilled .cairn marker at {existing}.")
+        return
 
     try:
         if template and (template.startswith("http://") or template.startswith("https://")

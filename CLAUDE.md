@@ -38,6 +38,7 @@ Out of scope until later phases: MCP server (Phase 3), meeting capture automatio
 Carried items that are not blocking a phase but should be picked up when convenient:
 
 - ~~Agent-driven bootstrap doc~~ — *done*. `AGENT-BOOTSTRAP.md` lives at the repo root and is linked from `QUICKSTART.md`.
+- **End-to-end agent-following test of `AGENT-BOOTSTRAP.md`.** Prototype recipe and roadmap live at `tests/agent_smoke/bootstrap-smoke-test/SKILL.md` (a dev-only skill, not shipped into cairns). Today: launch a subagent with that file's contents to smoke-test the bootstrap doc against a fixture project. Next: graduate to a gated pytest integration test driving the same loop via the Claude Agent SDK or headless `claude -p`, behind a GitHub Actions workflow keyed on `ANTHROPIC_API_KEY`.
 
 ## Development conventions
 

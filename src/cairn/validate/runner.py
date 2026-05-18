@@ -19,12 +19,16 @@ def run_all(paths: CairnPaths, *, strict: bool = False) -> ValidationReport:
     the next layer of problems.
     """
     issues = []
+    issues.extend(checks.marker_present(paths))
     issues.extend(checks.required_dirs_exist(paths))
     issues.extend(checks.yaml_parses(paths))
     issues.extend(checks.schemas_validate(paths))
     issues.extend(checks.meeting_filenames(paths))
 
-    if not issues:
+    # Run xref checks unless an *error* would have prevented us from
+    # building a valid state. Warnings (e.g., missing .cairn marker) are
+    # surface-only and don't impede deeper validation.
+    if not any(i.severity == "error" for i in issues):
         try:
             state = load_state(paths)
         except SchemaError as exc:
