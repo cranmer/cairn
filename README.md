@@ -47,14 +47,15 @@ cairn/
 │   ├── overview.html              # polished overview
 │   ├── splash.html                # single-page introduction
 │   └── decisions/                 # ADRs (YAML library, git library, etc.)
-├── templates/
-│   └── default/                   # canonical cairn template (cookiecutter layout)
-│       └── {{cookiecutter.project_name}}/
-│           └── skills/            # bundled SKILL.md files (orient, search-history, …)
+├── .github/workflows/             # CI: editable-install tests + wheel-install smoke
 ├── src/cairn/                     # Python package source
 │   ├── schemas/                   # Pydantic v2 models for the five state files
 │   ├── io/                        # YAML load/dump + state-file I/O
 │   ├── template/                  # Jinja2 renderer for `cairn init` templates
+│   ├── templates/                 # bundled cairn template (ships inside the wheel)
+│   │   └── default/{{cookiecutter.project_name}}/
+│   │       ├── skills/            # bundled SKILL.md files (orient, search-history, …)
+│   │       └── .claude/           # SessionStart hook so opened sessions auto-orient
 │   ├── validate/                  # checks, runner, report for `cairn validate`
 │   ├── status/                    # snapshot + renderers for `cairn status`
 │   ├── cli/                       # Typer subcommands (init, collaborator, decision, …)

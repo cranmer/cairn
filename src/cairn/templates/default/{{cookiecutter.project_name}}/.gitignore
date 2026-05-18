@@ -20,3 +20,7 @@ __pycache__/
 # Local-only data
 /data/local/
 /scratch/
+
+# Claude Code per-user, per-machine settings (paths are local to the user's box).
+# The shared, committed config lives in .claude/settings.json — keep that.
+.claude/settings.local.json

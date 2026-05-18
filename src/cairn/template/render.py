@@ -10,6 +10,7 @@ for the local-template path. For URL-based templates (US-P-02), the
 
 from __future__ import annotations
 
+import importlib.resources
 import json
 import shutil
 from pathlib import Path
@@ -19,15 +20,24 @@ from jinja2 import Environment
 
 
 def default_template_root() -> Path:
-    """Return the path to the bundled default template."""
-    # Layout: /home/.../cairn/src/cairn/template/render.py
-    # Templates: /home/.../cairn/templates/default
-    here = Path(__file__).resolve()
-    repo_root = here.parents[3]
-    candidate = repo_root / "templates" / "default"
-    if candidate.is_dir():
-        return candidate
-    raise FileNotFoundError(f"default template not found at {candidate}")
+    """Return the path to the bundled default template.
+
+    The templates live inside the ``cairn`` package (``src/cairn/templates/``
+    in the repo, ``cairn/templates/`` in the installed wheel), so the same
+    ``importlib.resources`` lookup works for editable installs, regular pip
+    installs, and pipx alike.
+    """
+    root = importlib.resources.files("cairn").joinpath("templates", "default")
+    # ``files()`` returns a Traversable; for wheels installed on disk it is
+    # always a real filesystem path (we don't ship zipped wheels).
+    path = Path(str(root))
+    if not path.is_dir():
+        raise FileNotFoundError(
+            f"default template not found at {path}. This usually means cairn was "
+            "installed without its bundled templates — try `pipx reinstall cairn` "
+            "(or your equivalent), or file an issue."
+        )
+    return path
 
 
 def _read_cookiecutter_defaults(template_root: Path) -> dict[str, Any]:

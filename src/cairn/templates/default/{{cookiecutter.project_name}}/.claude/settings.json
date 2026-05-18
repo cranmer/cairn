@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[cairn] Session start. This repo is a cairn (research project memory). Skills are in skills/<name>/SKILL.md; PROJECT.md is the orientation file. Project state follows below.' && (cairn status 2>/dev/null || echo '(cairn CLI not on PATH — see PROJECT.md for orientation, or write .claude/settings.local.json with a PATH entry pointing at your env)')"
+          }
+        ]
+      }
+    ]
+  }
+}

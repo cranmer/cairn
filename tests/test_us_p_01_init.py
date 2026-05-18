@@ -82,6 +82,24 @@ def test_us_p_01_bundles_skill_files(cwd: Path):
         assert f"name: {name}" in text
 
 
+def test_us_p_01_bundles_claude_session_start_hook(cwd: Path):
+    """The cairn template ships a Claude Code SessionStart hook."""
+    import json
+
+    _invoke_init(cwd)
+    settings = cwd / "test-project" / ".claude" / "settings.json"
+    assert settings.is_file(), "missing .claude/settings.json"
+    data = json.loads(settings.read_text())
+    session_start = data.get("hooks", {}).get("SessionStart")
+    assert session_start, "SessionStart hook missing from settings.json"
+    # The hook should invoke `cairn status` (with a graceful fallback if not on PATH).
+    serialized = json.dumps(data)
+    assert "cairn status" in serialized
+    # Per-user companion file must be gitignored:
+    gitignore = (cwd / "test-project" / ".gitignore").read_text()
+    assert ".claude/settings.local.json" in gitignore
+
+
 def test_us_p_01_initial_commit_excludes_dot_git_internals(cwd: Path):
     """Regression: the initial commit must not stage .git/ files."""
     _invoke_init(cwd)

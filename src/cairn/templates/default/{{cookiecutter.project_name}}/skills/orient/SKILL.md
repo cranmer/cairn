@@ -7,6 +7,8 @@ description: Use when starting a session inside this cairn (or when the user ask
 
 You are starting a session in a *cairn* — a git-native research project repository. This skill loads the right context efficiently.
 
+> **Note**: this cairn ships a Claude Code SessionStart hook in `.claude/settings.json` that already runs `cairn status` for you. If you can see fresh `cairn status` output in your initial context, you can skip step 3 below and go straight to interpreting it.
+
 ## Steps
 
 1. **Read `PROJECT.md`** first. It is short by design and points at where things live.

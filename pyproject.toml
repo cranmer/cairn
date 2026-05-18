@@ -34,6 +34,9 @@ cairn = "cairn.cli.app:app"
 [tool.hatch.build.targets.wheel]
 packages = ["src/cairn"]
 
+[tool.hatch.build.targets.sdist]
+include = ["src", "README.md", "QUICKSTART.md", "AGENT-BOOTSTRAP.md", "LICENSE", "pyproject.toml"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
