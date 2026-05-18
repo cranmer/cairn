@@ -6,14 +6,16 @@ If the user has already created a cairn and just wants you to orient inside it, 
 
 ## Two access modes — know which one you're setting up
 
-A cairn is a *separate* git repo from the project's working code/data/paper repos (see README.md's "A cairn is not a project's code repo" section). That means a user can have an agent session open in one of two places:
+A cairn is a *separate* git repo from the project's working code/data/paper repos (see README.md's "A cairn is not a project's code repo" section). That means a user can have an agent session open in one of two places, and **the mode is set the moment the user launched Claude Code — it is not changed by you `cd`ing during bootstrap**:
 
-- **Mode A** — session opened inside the cairn directory. Cairn's SessionStart hook, skills, and `TRACKING.md` posture are all loaded automatically. This is the **v0 supported mode for cairn work**: planning, debriefing, recording decisions, reviewing project state.
-- **Mode B** — session opened inside a project's code repo, cairn lives elsewhere. The agent has no automatic awareness of the cairn. Cross-repo skills distribution is on the roadmap (`docs/decisions/0005-cross-repo-skills.md`) but **not yet supported in v0**.
+- **Mode A** — session opened inside the cairn directory. The cairn's SessionStart hook fires once and runs `cairn status`, so you get a project-state context dump for free. The bundled SKILL.md files are *procedural prose* the agent reads on demand — they are not registered Claude Code skills and won't appear in the user's `/skills` list until ADR-0006 Stage 3 (`cairn skills install`) ships. Same applies to `TRACKING.md`: it's a file the agent reads, not a posture the harness loads.
+- **Mode B** — session opened anywhere else, typically inside a project's code repo. The SessionStart hook does not fire; no `cairn status` runs automatically. You can still drive the cairn by `cd`ing into it or using absolute paths, and you can still read the SKILL.md procedures from `<cairn>/skills/<name>/SKILL.md` on demand. Cross-repo discovery so a session inside a project repo finds its paired cairn without ceremony is on the roadmap (ADR-0006 Stage 2 — `cairn link` + a project-repo `cairn.toml` pointer file) but **not yet in v0**.
 
-This bootstrap doc creates a cairn and leaves the *current* session ready to do cairn work in Mode A. If the user later wants to do code work, they should open a separate Claude Code session inside the code repo, and come back to a cairn session (or run the *debrief* skill at the end of a working block) to capture what happened.
+This bootstrap doc creates a cairn. **It does not change the current session's mode** — Mode A vs Mode B is set by where the user launched Claude Code, not by where you `cd`. At the end, report mode honestly; don't claim Mode A just because your *current* cwd is the cairn directory. The "When you're done" section spells this out.
 
 If the user mentions they already have a project repo with code in it, the cairn you scaffold lives **alongside** that repo (e.g., `~/projects/foo-cairn/` next to `~/projects/foo/`), never inside it. You do not modify the existing project repo during bootstrap.
+
+**Capture initial cwd at session start** (e.g., the first `pwd` you run, before any `cd`) — you will need it at the end to determine which mode this session was opened in.
 
 ## Session affordances you should use
 
@@ -134,6 +136,8 @@ Ask the user:
 - **Role** — what they actually *do* on this project. Bias toward activity-based descriptions ("designing generative models", "running ablation experiments", "maintaining the data pipeline", "writing the introduction"), not titles ("PI", "postdoc", "professor"). Cairn intentionally avoids prescribing a hierarchy; whatever description fits the user's actual contribution is right. If they offer a title, that's also fine — accept it.
 - Optional: GitHub handle, expertise tags, current focus.
 
+You can pre-fill the user's **email** from their git config (`git config --get user.email`) without asking — the email is what the `orient` skill uses to match the current git user against the collaborator list. Without it, every future session has to ask "which collaborator id is yours?" Confirm the email with the user before passing it, but defaulting from `git config` is fine.
+
 When offering suggestions in any interactive prompt, suggest activity-based phrasings, not titles. Do not present role as a choice between fixed academic titles.
 
 Then run:
@@ -143,6 +147,7 @@ cairn collaborator add \
   --id <chosen-id> \
   --name "<Their Full Name>" \
   --role "<role>" \
+  --email <they@example.com> \
   [--github <handle>] \
   [--expertise <topic> --expertise <topic>] \
   [--current-focus "<short description>"]
@@ -157,7 +162,11 @@ git log --oneline   # the new commit "Add collaborator '<id>'"
 
 ## Step 6 — Show the user what they have
 
-Tell the user that the cairn now includes seven bundled `SKILL.md` files under `skills/`, plus a top-level `TRACKING.md` guide:
+Tell the user that the cairn now includes seven bundled `SKILL.md` files under `skills/`, plus a top-level `TRACKING.md` guide.
+
+> **What "ships seven skills" means today.** The SKILL.md files are *procedural prose* — what each skill is, when to trigger it, which `cairn` CLI command to run. They are **not** registered Claude Code skills: they won't appear in the user's `/skills` list and the Skill tool can't invoke them by name. You (the agent) read the relevant `SKILL.md` when its trigger fires and execute the steps manually. Cross-repo installation that makes them real `/orient`, `/log-finding`, etc. slash commands everywhere is on the roadmap (ADR-0006 Stage 3, `cairn skills install`) but not yet in v0. Until then, the procedures still work — you just invoke them yourself.
+
+The procedures:
 
 - **TRACKING.md** (at the cairn root) — the *posture* guide. Cairn's whole point is that the user shouldn't have to invoke CLI commands by hand; you (the agent) listen for capture-worthy signals in conversation and record them transparently. Read this once at session start.
 - **orient** — what you should read at session start to be useful without burning context.
@@ -223,9 +232,18 @@ Tell the user: *"Future Claude Code sessions opened in this cairn will auto-orie
 
 ## When you're done
 
-Tell the user:
+Report **honestly** about what just happened. Two facts to convey:
 
-> Your cairn `<name>` is live at `<absolute-path>`. The skills in `skills/<…>/SKILL.md` are now available to me for this session — this is Mode A (we're working inside the cairn). For future cairn work, open Claude Code in this directory; for code work in your project repo(s), open a separate session there and come back to a cairn session (or invoke the *debrief* skill at the end of a working block) to capture what happened. Ask me to *orient* whenever you want a status summary, or just describe what you want to do next — I'll pick the right skill.
+1. **Where the cairn lives** — its absolute path; it's a sibling of any existing project repos, not nested inside them.
+2. **What mode this session is in** — and the key word is *honestly*. Mode is determined by where the user *opened Claude Code*, not where you are now after `cd`ing during bootstrap:
+   - If the user's *initial* cwd was inside the cairn directory, this is **Mode A**: the cairn's SessionStart hook fired and `cairn status` ran automatically.
+   - If the user's *initial* cwd was anywhere else (typically their project's code repo), this is **Mode B**: the hook did not fire. You can still run cairn commands by `cd`-ing or by using full paths, and you can read the SKILL.md procedures on demand — but don't claim this is Mode A. It isn't.
+
+   In either case, the SKILL.md files are *procedural prose* (see Step 6's note), not registered Claude Code skills. Don't tell the user the skills are "loaded" or "available" as if they were slash commands.
+
+A reasonable closing message:
+
+> Your cairn `<name>` is live at `<absolute-path>`. This session was opened in `<initial-cwd>`, so it's **<Mode A or Mode B>**. <If Mode B: I can still capture findings, decisions, and actions to the cairn during our conversation — I'll run the CLI commands from there for you. The SessionStart auto-orient only fires when you open Claude Code from inside the cairn directory.> The cairn's SKILL.md procedures (orient, log-finding, debrief, etc.) are prose I'll read on demand when their triggers fire; once a future `cairn skills install` ships (ADR-0006 Stage 3) they'll be registered as real `/orient`, `/log-finding`, etc. slash commands. For ongoing project work today: continue here, or open a fresh session wherever feels natural — just describe what you want to do next, and I'll pick the right procedure.
 
 Then stop. The user will direct the next step.
 

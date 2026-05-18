@@ -24,6 +24,7 @@ class Collaborator(BaseModel):
     name: str = Field(min_length=1)
     role: str = Field(min_length=1)
     type: Literal["human", "ai-collaborator"] = "human"
+    email: str | None = None
     github: str | None = None
     expertise: list[str] = Field(default_factory=list)
     current_focus: str | None = None

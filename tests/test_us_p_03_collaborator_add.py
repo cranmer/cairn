@@ -40,6 +40,28 @@ def test_us_p_03_add_creates_entry(cwd: Path, monkeypatch: pytest.MonkeyPatch):
     assert collabs[0].role == "postdoc"
 
 
+def test_us_p_03_add_accepts_email(cwd: Path, monkeypatch: pytest.MonkeyPatch):
+    """The orient skill matches the current git user against collaborator
+    email; the CLI must accept --email and the schema must round-trip it."""
+    root = _init(cwd, monkeypatch)
+    res = runner.invoke(
+        app,
+        [
+            "collaborator", "add",
+            "--id", "maria",
+            "--name", "Maria Santos",
+            "--role", "postdoc",
+            "--email", "maria@example.com",
+            "--github", "maria-s",
+        ],
+        catch_exceptions=False,
+    )
+    assert res.exit_code == 0, res.output
+    collabs = load_collaborators(CairnPaths(root=root))
+    assert collabs[0].email == "maria@example.com"
+    assert collabs[0].github == "maria-s"
+
+
 def test_us_p_03_id_must_be_unique(cwd: Path, monkeypatch: pytest.MonkeyPatch):
     _init(cwd, monkeypatch)
     runner.invoke(

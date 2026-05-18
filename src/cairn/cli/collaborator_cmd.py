@@ -64,6 +64,14 @@ def add(
         ),
     ),
     type_: str = typer.Option("human", "--type", help="'human' or 'ai-collaborator'."),
+    email: str | None = typer.Option(
+        None,
+        "--email",
+        help=(
+            "Email address. Used by the orient skill to match the current git user "
+            "against the collaborator list; without it the agent has to ask."
+        ),
+    ),
     github: str | None = typer.Option(None, "--github", help="GitHub handle."),
     expertise: list[str] = typer.Option(
         [], "--expertise", help="Repeatable; expertise tag.", show_default=False
@@ -108,6 +116,7 @@ def add(
             "name": name,
             "role": role,
             "type": type_,
+            "email": email,
             "github": github,
             "expertise": expertise,
             "current_focus": current_focus,
