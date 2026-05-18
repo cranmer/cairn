@@ -219,3 +219,6 @@ __marimo__/
 
 # macOS Finder metadata (matches .DS_Store at any depth)
 .DS_Store
+
+# hatch-vcs writes this file at build time; the version is derived from git, not stored
+src/cairn/_version.py

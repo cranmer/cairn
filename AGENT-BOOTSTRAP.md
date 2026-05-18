@@ -198,6 +198,7 @@ Tell the user: *"Future Claude Code sessions opened in this cairn will auto-orie
 - **`cairn init` errors with "no git user identity configured"**: go back to Step 3 and set it; do not invent.
 - **`cairn init` errors with "refusing to overwrite"**: a directory with that name already exists. Ask the user whether to pick a new name or pass `--force` (which deletes the existing directory; warn first).
 - **Any schema or YAML error**: stop, show the user the exact error, and ask how to proceed. Do not edit state files by hand to "fix" them without confirmation.
+- **`pipx upgrade cairn` did nothing on an old install**: expected if the installed version is the pre–hatch-vcs static `0.1.0`. Run `pipx install --force git+https://github.com/cranmer/cairn` once to land on the dynamic-versioning era; after that, `pipx upgrade` works normally. See the "Upgrading Cairn later" section below.
 
 ## What you should *not* do
 
@@ -213,3 +214,22 @@ Tell the user:
 > Your cairn `<name>` is live at `<absolute-path>`. The skills in `skills/<…>/SKILL.md` are now available to me for this session. Ask me to *orient* whenever you want a status summary, or just describe what you want to do next — I'll pick the right skill.
 
 Then stop. The user will direct the next step.
+
+## Upgrading Cairn later
+
+Cairn is pre-1.0 and changes land directly on `main`. The package version is now derived from git via `hatch-vcs` — every commit produces a unique version like `0.1.0.dev28+g0b9c97f`, so `pipx upgrade cairn` (and `pip install --upgrade`) correctly detect new commits rather than short-circuiting on matching static metadata.
+
+To pick up the latest:
+
+```sh
+# pipx (recommended install path)
+pipx upgrade cairn                                              # if Cairn was installed via pipx
+pipx install --force git+https://github.com/cranmer/cairn       # equivalent; works even when upgrade can't
+
+# pip in a venv / conda env
+pip install --upgrade git+https://github.com/cranmer/cairn
+```
+
+If you (or the user) hit a Cairn install from before this commit where the version was the static `0.1.0`, `pipx upgrade` will no-op — fall back to `pipx install --force ...` once, and `pipx upgrade` will work from then on.
+
+After upgrading, **existing cairns are not automatically updated.** They already shipped with whatever template / skills / `.claude/settings.json` were current at `cairn init` time, and Cairn doesn't yet have a `cairn upgrade <project>` migration command. If a meaningful template change shipped, surface that to the user and either (a) re-init into a new directory and have the user copy state over, or (b) cherry-pick specific files from the new template's location (see `python -c "import importlib.resources; print(importlib.resources.files('cairn').joinpath('templates','default'))"`). Don't auto-overwrite without asking — the user may have hand-edited PROJECT.md, etc.
