@@ -62,10 +62,11 @@ When in doubt about Cairn's principles, the **substrate-as-specification commitm
 
 These should hold across everything built in this repo:
 
+- **Augmentation, not replacement.** Cairn does not ask collaborators to change how they work. They keep using their normal tools — git, Zoom, Slack, conversation — at their normal rhythm; agents listen and write structured notes into the cairn as a side effect. Agents are facilitators, not stenographers (clarifying questions OK) and not UIs (don't impose new rituals or CLI ceremony). The test for any new feature: would a thoughtful new collaborator naturally do this without a new tool? Full statement: `docs/decisions/0007-augmentation-not-replacement.md`. Companion principle to substrate-as-specification.
 - **Attribution end-to-end.** Every write through any interface records the actor's identity. Git authorship for humans; a configured agent identity (in `state/collaborators.yaml`) for AI collaborators.
 - **Source of truth is the repo.** Anything else (vector indices, MCP server caches, computed summaries) is derived and must be reproducible from the repo. Stop-and-rebuild produces identical results.
 - **Validation visibility.** Schema violations and broken cross-references produce clear errors with enough context to fix. Never silent corruption.
-- **Branch semantics consistency.** Operations scoped to a branch see that branch's view, not main's.
+- **Branch semantics consistency.** Operations scoped to a branch see that branch's view, not main's. (Note: a forthcoming rename per ADR-0008 makes the user-facing concept "exploration" rather than "branch"; the underlying git mechanism is unchanged.)
 
 ## Related work to be aware of
 
