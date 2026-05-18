@@ -7,7 +7,7 @@ from pathlib import Path
 import typer
 
 from ..errors import CairnError
-from ..git_ops import commit, get_user_identity, init_repo
+from ..git_ops import commit, disable_signing_if_unable_to_sign, get_user_identity, init_repo
 from ..paths import REQUIRED_DIRS, STATE_FILES, CairnPaths
 from ..template import default_template_root, render_from_path, render_from_url
 
@@ -73,6 +73,7 @@ def init(
         raise typer.Exit(code=1) from None
 
     repo = init_repo(rendered)
+    disabled_signing = disable_signing_if_unable_to_sign(repo)
     # Exclude anything inside the new .git/ directory (created by init_repo above).
     all_files = [
         p for p in rendered.rglob("*")
@@ -87,3 +88,10 @@ def init(
 
     paths = CairnPaths(root=rendered)
     typer.echo(f"Initialized cairn at {paths.root}")
+    if disabled_signing:
+        typer.echo(
+            "Note: disabled commit signing for this cairn "
+            "(`commit.gpgsign=true` globally but no `user.signingkey` set). "
+            f"Manual `git commit` would otherwise fail. To re-enable: "
+            f"`git -C {paths.root} config --unset commit.gpgsign`."
+        )

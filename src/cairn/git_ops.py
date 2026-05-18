@@ -73,6 +73,61 @@ def _from_repo(repo: Repo) -> Identity | None:
     return None
 
 
+def _git_config_in_repo(repo_path: Path, key: str) -> str | None:
+    """Read the effective value of ``key`` as seen from inside ``repo_path``.
+
+    Unlike :func:`_git_config_value` (which targets a single scope), this returns
+    the value combining system/global/local/env scopes — i.e. what git itself
+    would use when running a command inside the repo.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "config", "--get", key],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+def disable_signing_if_unable_to_sign(repo: Repo) -> bool:
+    """Write repo-local ``commit.gpgsign=false`` if signing would otherwise fail.
+
+    The CLI creates commits via GitPython's Python-level index API, which
+    bypasses ``commit.gpgsign`` entirely. The user's *subsequent* manual
+    ``git commit`` invocations inside the cairn do not — and on hosts where
+    ``commit.gpgsign=true`` is set globally without a configured signing key,
+    those manual commits fail with an opaque signing error.
+
+    If the user has ``user.signingkey`` configured anywhere, this is a no-op
+    (they intentionally opted into signing). Otherwise, if signing would be
+    enabled by default, write a repo-local override so future manual commits
+    in this cairn just work.
+
+    Returns ``True`` iff the override was written.
+    """
+    repo_path = Path(repo.working_dir)
+    if _git_config_in_repo(repo_path, "user.signingkey"):
+        return False
+    gpgsign = _git_config_in_repo(repo_path, "commit.gpgsign")
+    if gpgsign is None or gpgsign.lower() != "true":
+        return False
+    try:
+        subprocess.run(
+            ["git", "-C", str(repo_path), "config", "commit.gpgsign", "false"],
+            check=True,
+            timeout=5,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        return False
+    return True
+
+
 def _from_global() -> Identity | None:
     """Read identity from ``git config --global`` without needing a repo."""
     name = _git_config_value("--global", "user.name")
