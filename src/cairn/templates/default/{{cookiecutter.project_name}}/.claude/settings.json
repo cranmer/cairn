@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '[cairn] Session start. This repo is a cairn (research project memory). Skills are in skills/<name>/SKILL.md; PROJECT.md is the orientation file. Project state follows below.' && (cairn status 2>/dev/null || echo '(cairn CLI not on PATH — see PROJECT.md for orientation, or write .claude/settings.local.json with a PATH entry pointing at your env)')"
+            "command": "echo '[cairn] Session start. This repo is a cairn (research project memory). Read PROJECT.md for orientation and TRACKING.md for how to capture state from conversation without making the user invoke commands by hand. Skills are in skills/<name>/SKILL.md (use the debrief skill at session end). Project state follows below.' && (cairn status 2>/dev/null || echo '(cairn CLI not on PATH — see PROJECT.md, or write .claude/settings.local.json with a PATH entry pointing at your env)')"
           }
         ]
       }

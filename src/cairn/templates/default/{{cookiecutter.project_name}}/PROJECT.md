@@ -19,6 +19,7 @@ TODO: One or two paragraphs describing what this project is about, who's on it, 
 - `knowledge/provenance/` — reproducibility artifacts (RO-Crate, ASTRA, ARA, etc.).
 - `skills/` — procedural skills available to agents working in this cairn.
 - `branches/README.md` — index of active branches.
+- `TRACKING.md` — agent-facing posture guide: how the agent should capture state from conversation so the user doesn't have to invoke commands by hand.
 
 ## Current focus
 
@@ -26,8 +27,8 @@ TODO: What is the group actively working on this month? List 2–4 items, each l
 
 ## How to contribute
 
-- Humans: edit files directly and commit. Use `cairn` CLI helpers (`cairn collaborator add`, `cairn decision add`, etc.) when convenient.
-- Agents: read this file, then `state/collaborators.yaml` to know who you're talking to. Use the skills in `skills/` for common workflows. Don't write to canonical state on behalf of a user without their confirmation.
+- Humans: edit files directly and commit. Use `cairn` CLI helpers (`cairn collaborator add`, `cairn decision add`, etc.) when convenient — but you shouldn't have to invoke them by hand if you're working with an agent (see below).
+- Agents: read this file, then `state/collaborators.yaml` to know who you're talking to, then `TRACKING.md` to know how to track for the user without them having to be explicit about every capture. Use the skills in `skills/` for common workflows. The `debrief` skill at session end catches anything that slipped through live capture.
 
 ## Project metadata
 

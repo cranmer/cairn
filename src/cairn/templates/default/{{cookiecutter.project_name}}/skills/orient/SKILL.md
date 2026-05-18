@@ -13,6 +13,8 @@ You are starting a session in a *cairn* — a git-native research project reposi
 
 1. **Read `PROJECT.md`** first. It is short by design and points at where things live.
 
+1a. **Read `TRACKING.md`.** This is the project's posture guide for *how* you should capture state from the working conversation — cairn is built so the user doesn't have to invoke CLI commands by hand. Internalize the signals-to-listen-for table before the conversation starts.
+
 2. **Read `state/collaborators.yaml`**. This identifies who's on the project. Match the current user by:
    - the configured git identity (`git config user.email`), against each collaborator's `github` or email field if present;
    - if no match, ask the user which collaborator id is theirs and note it for the session.

@@ -146,14 +146,16 @@ git log --oneline   # the new commit "Add collaborator '<id>'"
 
 ## Step 6 — Show the user what they have
 
-Tell the user that the cairn now includes six bundled `SKILL.md` files under `skills/`:
+Tell the user that the cairn now includes seven bundled `SKILL.md` files under `skills/`, plus a top-level `TRACKING.md` guide:
 
-- **orient** — what you (the agent) should read at session start to be useful without burning context.
+- **TRACKING.md** (at the cairn root) — the *posture* guide. Cairn's whole point is that the user shouldn't have to invoke CLI commands by hand; you (the agent) listen for capture-worthy signals in conversation and record them transparently. Read this once at session start.
+- **orient** — what you should read at session start to be useful without burning context.
 - **search-history** — local-file scan for "was X considered?" questions.
 - **start-branch** — wraps `cairn branch start "<desc>"` for exploratory work.
 - **resolve-branch** — wraps `cairn branch close <name>` when an exploration branch is merged or abandoned. Counterpart to `start-branch`.
 - **complete-action** — wraps `cairn action complete <id>` when something gets done.
 - **log-finding** — wraps `cairn finding add` when the user discovers something worth recording.
+- **debrief** — at session-end signals ("let's wrap up", "good place to stop"), reviews the conversation and produces a single batched proposal of any captures that didn't happen live. One round of bulk confirmation rather than per-item interruptions.
 
 Suggest two concrete next steps they might take in this session:
 
