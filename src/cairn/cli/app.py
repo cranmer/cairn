@@ -10,6 +10,9 @@ from .decision_cmd import app as decision_app
 from .exploration_cmd import app as exploration_app
 from .finding_cmd import app as finding_app
 from .init_cmd import init
+from .link_cmd import link
+from .mcp_cmd import mcp
+from .register_cmd import register, registered, unregister
 from .status_cmd import status
 from .validate_cmd import validate
 
@@ -27,6 +30,11 @@ app.add_typer(exploration_app, name="exploration")
 app.add_typer(finding_app, name="finding")
 app.command(name="validate")(validate)
 app.command(name="status")(status)
+app.command(name="link")(link)
+app.command(name="register")(register)
+app.command(name="unregister")(unregister)
+app.command(name="registered")(registered)
+app.command(name="mcp")(mcp)
 
 
 @app.command(name="version")

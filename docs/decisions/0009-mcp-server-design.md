@@ -1,5 +1,7 @@
 # 0009 — MCP server design
 
+> **Note (superseded in part):** ADR-0010 revises this ADR's per-cairn-server model to a single MCP server serving multiple cairns. The "Configuration" section's per-cairn `mcpServers` example and the tool-surface signatures (which gain a leading `cairn: str` parameter) are superseded. The tool inventory, identity model, transport, and minimum-viable-surface decisions in this ADR stand; only the cardinality (one server per user, not per cairn) changes.
+
 ## Context
 
 ADR-0008 reframed Cairn's access modes around client/server vocabulary and named client mode (formerly Mode B) as the primary surface — most cairn interactions happen from inside a project repo, a meeting transcript, a Slack thread, or wherever real work happens, with the cairn as a transparent backend the agent calls into. Stage 2 of the discovery/pairing work (ADR-0006) gives that mode a local-filesystem transport: a `cairn.toml` in the project repo points at a sibling cairn directory, and the agent dispatches CLI commands against it without `cd`.

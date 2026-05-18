@@ -31,7 +31,9 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 - [ ] US-P-08: Artifact export — `cairn artifact export --format <astra|ara|ro-crate>` produces a directory in the chosen specification's layout. Stubs that pass schema validation are acceptable early.
 - [ ] US-P-09: Agenda draft — `cairn agenda draft --since <date|last-meeting>` writes a markdown agenda assembled from flagged items, explorations needing review, recent open questions, due action items, and recent findings.
 
-Out of scope until later phases: MCP server (Phase 3), meeting capture automation (Phase 4), AI collaborator runtime with scheduling/permissions enforcement (Phase 5), voice mode (Phase 6), artifact export (Phase 2 / US-P-08), meeting import (Phase 2 / US-P-07). Don't speculatively scaffold these.
+**Phase 3 — MCP server alongside the repo — has started.** Tier-1 ships an `[mcp]`-extra `cairn mcp` subprocess (stdio transport, FastMCP) plus a single user-level registry (`~/.config/cairn/server.toml`) so one MCP server serves multiple cairns (ADR-0010). Tools so far: `whoami`, `status`, `get_open_questions`, `get_action_items`, `add_decision`, `add_finding`, `add_action`, `complete_action` — all per ADR-0009's Tier-1 list. New CLI commands: `cairn register`, `cairn unregister`, `cairn registered`, `cairn link`, `cairn mcp`. Tier 2 (explorations, findings reads, search) and Tier 3 (full read surface) follow once UX testing of Tier 1 surfaces what's missing.
+
+Out of scope until later phases: meeting capture automation (Phase 4), AI collaborator runtime with scheduling/permissions enforcement (Phase 5), voice mode (Phase 6), artifact export (Phase 2 / US-P-08), meeting import (Phase 2 / US-P-07). Don't speculatively scaffold these.
 
 ## Backlog (not yet phased)
 

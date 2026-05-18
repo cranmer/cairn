@@ -15,7 +15,9 @@ A *finding* is a small piece of learned knowledge worth keeping — an empirical
 
 3. **Pick related entity ids** (optional but encouraged). If this finding bears on an open question, a recent decision, or an existing goal, include those IDs (`Q-NNN`, `D-NNN`, `G-NNN`, `A-NNN`). Scan `state/decisions.yaml` and `state/open_questions.yaml` briefly to find candidates; confirm with the user before adding them.
 
-4. **Run the command**:
+4. **Invoke the action.** Two equivalent paths (see TRACKING.md):
+   - **MCP** *(preferred when available)*: call `add_finding(author=..., title="...", related=[...], body="...")`. Pass `cairn="<name>"` if more than one cairn is registered.
+   - **CLI** *(when MCP isn't wired up)*:
 
    ```sh
    cairn finding add \
@@ -26,7 +28,7 @@ A *finding* is a small piece of learned knowledge worth keeping — an empirical
      --body "<body text or use --body-from FILE for longer bodies>"
    ```
 
-   This will:
+   Either path will:
    - derive a kebab-case slug from `--title` (override with `--slug`),
    - write `knowledge/findings/YYYY-MM-DD-<slug>.md` with frontmatter (`date`, `author`, `title`, `slug`, `related`, `exploration`),
    - stage and commit the file, attributed to the configured git user.

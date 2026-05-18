@@ -14,7 +14,9 @@ Action items in `state/action_items.yaml` track outstanding work. When something
    - If the match is unambiguous, proceed with its id (e.g., `A-014`).
    - If ambiguous or no match, ask the user which `A-NNN` they mean and list the open candidates.
 
-2. **Run the command**:
+2. **Invoke the action.** Two equivalent paths (see TRACKING.md):
+   - **MCP** *(preferred when available)*: call `complete_action(id="A-014", by="<user-id>")`. Pass `cairn="<name>"` if more than one cairn is registered.
+   - **CLI**:
 
    ```sh
    cairn action complete A-014

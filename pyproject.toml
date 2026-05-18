@@ -27,6 +27,8 @@ dev = [
   "ruff",
 ]
 cookiecutter = ["cookiecutter>=2.6"]
+mcp = ["mcp>=1.0"]
+toml = ["tomli>=2.0; python_version<'3.11'"]
 
 [project.scripts]
 cairn = "cairn.cli.app:app"

@@ -19,7 +19,9 @@ You are starting a session in a *cairn* — a git-native research project reposi
    - the configured git identity (`git config user.email`), against each collaborator's `github` or email field if present;
    - if no match, ask the user which collaborator id is theirs and note it for the session.
 
-3. **Run `cairn status`** to get a compact summary of: open question count, incomplete action items (overdue / this week / upcoming), recent decisions, latest meeting. This is bounded in size by design (≤30 lines).
+3. **Get a project-state summary.** Two equivalent paths (see TRACKING.md):
+   - **MCP** *(preferred when available)*: call the `status` tool. Pass `cairn="<name>"` if more than one cairn is registered. Also consider `whoami` to confirm the collaborator list for the identity-resolution step above.
+   - **CLI**: run `cairn status` — same compact summary (open question count, incomplete action items by bucket, recent decisions, latest meeting), bounded in size by design (≤30 lines).
 
 4. **Do *not* eagerly load:**
    - meeting transcripts in `knowledge/meetings/`
