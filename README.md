@@ -11,6 +11,8 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 **A cairn is not a project's code repo.** A typical research project already has one or more git repos for its code, analyses, paper, and data; the cairn is a *separate*, additional repo that lives alongside them and holds the group's shared memory — decisions, open questions, findings, action items, meeting notes — that doesn't naturally fit inside any one code repo. The cairn references the others (via free-form notes for now, structured cross-references later) without containing them.
 
+**Mode A is the v0 working convention.** Because a cairn is its own repo, *cairn work* (planning, debriefing, recording decisions, reviewing the project state) happens in a Claude Code session opened **inside the cairn directory**. Day-to-day code work happens in a separate session inside the project's code repo. The cairn's bundled skills, SessionStart hook, and tracking stance are loaded automatically only in the cairn session; bridging to/from the code-repo session is manual for v0 (typically: at the end of a code-work block, hop to the cairn session and run the *debrief* skill). The cross-repo skills story is on the roadmap as a future improvement — see [`docs/decisions/0005-cross-repo-skills.md`](docs/decisions/0005-cross-repo-skills.md).
+
 > **Status:** Phase 0/1 implemented. The Python package scaffolds new cairns, manages collaborators and decisions, validates state, and reports project status. See [QUICKSTART.md](QUICKSTART.md) for a five-minute tour. For the full vision, see [the design overview](docs/overview.html).
 
 ## What it enables

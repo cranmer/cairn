@@ -85,6 +85,11 @@ The architecture is intentionally agnostic about which clients exist. New ones a
 
 A cairn is a standalone git repository, **separate from the project's code/data/paper repos**. A typical research project already has one or more such "working" repos; the cairn is an additional repo that holds the coordination layer — decisions, open questions, findings, action items, meeting notes — that doesn't fit naturally inside any working repo. The cairn references the working repos (initially via free-form notes in `PROJECT.md`'s "Related repositories" section; structured cross-references — e.g., linking a finding to a specific commit SHA in a code repo — are future work). One project = one cairn = one git repo, but a project may have several code/data repos that the cairn coordinates.
 
+The separate-repo design has an immediate consequence for how an agent interacts with a cairn. In v0 there are two distinct *access modes*:
+
+- **Mode A** — the user's Claude Code session is open inside the cairn directory. The bundled SessionStart hook, the skills at `skills/<name>/SKILL.md`, and the tracking-stance posture in `TRACKING.md` are all in the agent's context automatically. This is the supported mode for cairn work (planning, debriefing, recording, reviewing).
+- **Mode B** — the session is open inside a project's working repo, and the cairn lives elsewhere on disk. The agent there has no automatic awareness of the cairn. Bridging is manual for v0 (the user runs the *debrief* skill in a separate cairn session at the end of a working block); a cleaner Mode B implementation (globally-installed cairn skills with cairn-discovery) is planned but deferred. See `docs/decisions/0005-cross-repo-skills.md`.
+
 ```
 project-name/
   README.md                 # human-facing project overview

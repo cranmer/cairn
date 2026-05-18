@@ -4,6 +4,17 @@
 
 If the user has already created a cairn and just wants you to orient inside it, this file is the wrong one — point them at `QUICKSTART.md` and stop.
 
+## Two access modes — know which one you're setting up
+
+A cairn is a *separate* git repo from the project's working code/data/paper repos (see README.md's "A cairn is not a project's code repo" section). That means a user can have an agent session open in one of two places:
+
+- **Mode A** — session opened inside the cairn directory. Cairn's SessionStart hook, skills, and `TRACKING.md` posture are all loaded automatically. This is the **v0 supported mode for cairn work**: planning, debriefing, recording decisions, reviewing project state.
+- **Mode B** — session opened inside a project's code repo, cairn lives elsewhere. The agent has no automatic awareness of the cairn. Cross-repo skills distribution is on the roadmap (`docs/decisions/0005-cross-repo-skills.md`) but **not yet supported in v0**.
+
+This bootstrap doc creates a cairn and leaves the *current* session ready to do cairn work in Mode A. If the user later wants to do code work, they should open a separate Claude Code session inside the code repo, and come back to a cairn session (or run the *debrief* skill at the end of a working block) to capture what happened.
+
+If the user mentions they already have a project repo with code in it, the cairn you scaffold lives **alongside** that repo (e.g., `~/projects/foo-cairn/` next to `~/projects/foo/`), never inside it. You do not modify the existing project repo during bootstrap.
+
 ## Session affordances you should use
 
 Two things about your Claude Code session that matter for this bootstrap:
@@ -214,7 +225,7 @@ Tell the user: *"Future Claude Code sessions opened in this cairn will auto-orie
 
 Tell the user:
 
-> Your cairn `<name>` is live at `<absolute-path>`. The skills in `skills/<…>/SKILL.md` are now available to me for this session. Ask me to *orient* whenever you want a status summary, or just describe what you want to do next — I'll pick the right skill.
+> Your cairn `<name>` is live at `<absolute-path>`. The skills in `skills/<…>/SKILL.md` are now available to me for this session — this is Mode A (we're working inside the cairn). For future cairn work, open Claude Code in this directory; for code work in your project repo(s), open a separate session there and come back to a cairn session (or invoke the *debrief* skill at the end of a working block) to capture what happened. Ask me to *orient* whenever you want a status summary, or just describe what you want to do next — I'll pick the right skill.
 
 Then stop. The user will direct the next step.
 
