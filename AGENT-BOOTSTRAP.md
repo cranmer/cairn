@@ -168,9 +168,11 @@ cairn validate      # confirms schema + cross-references are clean
 
 ## Step 6.5 — Make this session live *inside* the cairn (env-based installs only) ★
 
-Skip this step if the user installed via **pipx** in Step 2 — `cairn` is already on the user's normal PATH and no further plumbing is needed; just `cd <project-path>` once and you're done.
+Note on what already ships: every cairn scaffolded by `cairn init` comes with a `.claude/settings.json` that has a SessionStart hook running `cairn status`. That gives any Claude Code session opened in the cairn an immediate project-state context dump. The `.gitignore` already excludes `.claude/settings.local.json` (the per-user, per-machine file below). You do NOT need to create either of those files in the pipx case.
 
-For users who picked Option 2 (an existing venv / conda / pixi / uv env), `cairn` only resolves when that env is activated, and your Bash tool resets shell state between calls. The durable fix is to write a `.claude/settings.local.json` file at the cairn root that prepends the env's `bin/` to `PATH`. Claude Code reads this file when a session is opened at (or below) that directory.
+Skip the rest of this step if the user installed via **pipx** in Step 2 — `cairn` is on PATH everywhere, the bundled hook runs, and you're done; just `cd <project-path>` once.
+
+For users who picked Option 2 (an existing venv / conda / pixi / uv env), `cairn` only resolves when that env is activated, and your Bash tool resets shell state between calls. The fix is to write a `.claude/settings.local.json` file at the cairn root that prepends the env's `bin/` to `PATH`. Claude Code reads this file alongside `.claude/settings.json` and merges them.
 
 1. `cd <project-path>` (one time — the working directory will persist).
 2. Capture the env's `bin/` directory. If you remember the path from Step 2, use it directly. Otherwise: `which cairn` (after activating the env once, e.g., `conda activate cairn`) returns `<env>/bin/cairn`; the relevant directory is the parent.
@@ -184,16 +186,11 @@ For users who picked Option 2 (an existing venv / conda / pixi / uv env), `cairn
    }
    ```
 
-4. Add `.claude/settings.local.json` to the cairn's `.gitignore` — this file contains a path specific to the user's machine and shouldn't be shared. Confirm with the user before editing `.gitignore`, then append:
-
-   ```
-   # Claude Code per-user, per-machine settings — paths are local
-   .claude/settings.local.json
-   ```
+4. No `.gitignore` edit needed — the bundled template already excludes `.claude/settings.local.json`. Confirm with `git status` that the new file does not appear.
 
 5. Verify in a fresh Bash call (no env activation) that `cairn --help` now resolves.
 
-Tell the user: *"Future Claude Code sessions opened in this cairn will pick this up automatically. You won't need to activate the env in those sessions either."*
+Tell the user: *"Future Claude Code sessions opened in this cairn will auto-orient via the bundled SessionStart hook, and `cairn` will resolve without activation. You're set."*
 
 ## What to do if anything fails
 

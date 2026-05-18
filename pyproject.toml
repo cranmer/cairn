@@ -34,6 +34,16 @@ cairn = "cairn.cli.app:app"
 [tool.hatch.build.targets.wheel]
 packages = ["src/cairn"]
 
+[tool.hatch.build.targets.wheel.force-include]
+# Ship the bundled cairn templates inside the wheel so `cairn init` works
+# from a normal (pip / pipx) install — without this the templates/ dir
+# is missing from site-packages and default_template_root() can't find
+# anything to render.
+"templates" = "cairn/_templates"
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "templates", "README.md", "QUICKSTART.md", "LICENSE", "pyproject.toml"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"

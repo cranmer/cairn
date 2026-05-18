@@ -10,6 +10,7 @@ for the local-template path. For URL-based templates (US-P-02), the
 
 from __future__ import annotations
 
+import importlib.resources
 import json
 import shutil
 from pathlib import Path
@@ -19,15 +20,41 @@ from jinja2 import Environment
 
 
 def default_template_root() -> Path:
-    """Return the path to the bundled default template."""
-    # Layout: /home/.../cairn/src/cairn/template/render.py
-    # Templates: /home/.../cairn/templates/default
+    """Return the path to the bundled default template.
+
+    Resolution order:
+
+    1. ``<cairn-package>/_templates/default/`` — the location used in
+       wheels built by hatchling (the ``force-include`` rule in
+       pyproject.toml copies the repo's ``templates/`` into the wheel
+       under this prefix). This path is the one a ``pip install`` or
+       ``pipx install`` user hits.
+    2. ``<repo-root>/templates/default/`` — the development-checkout
+       layout, where the repo root is three directories above this
+       file. Used during editable installs and when running tests.
+    """
+    try:
+        installed = importlib.resources.files("cairn").joinpath("_templates", "default")
+        # ``installed`` is a Traversable; we need a real filesystem path. For
+        # wheels installed on disk this is always a Path; only zipped installs
+        # would differ (we don't ship those).
+        installed_path = Path(str(installed))
+        if installed_path.is_dir():
+            return installed_path
+    except (ModuleNotFoundError, AttributeError, OSError):
+        pass
+
     here = Path(__file__).resolve()
-    repo_root = here.parents[3]
-    candidate = repo_root / "templates" / "default"
-    if candidate.is_dir():
-        return candidate
-    raise FileNotFoundError(f"default template not found at {candidate}")
+    dev_candidate = here.parents[3] / "templates" / "default"
+    if dev_candidate.is_dir():
+        return dev_candidate
+
+    raise FileNotFoundError(
+        "default template not found in either the installed package "
+        f"(cairn/_templates/default) or the dev checkout ({dev_candidate}). "
+        "If this is a pip/pipx install, the wheel may be missing template "
+        "data — reinstall from a recent build."
+    )
 
 
 def _read_cookiecutter_defaults(template_root: Path) -> dict[str, Any]:
