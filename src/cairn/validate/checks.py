@@ -7,12 +7,15 @@ import re
 import yaml
 from pydantic import TypeAdapter, ValidationError
 
+from ..io import frontmatter as fm
 from ..paths import REQUIRED_DIRS, STATE_FILES, CairnPaths
 from ..schemas import (
+    FINDING_FILENAME,
     ActionItem,
     CairnState,
     Collaborator,
     Decision,
+    FindingFrontmatter,
     Goal,
     OpenQuestion,
 )
@@ -201,6 +204,100 @@ def meeting_filenames(paths: CairnPaths) -> list[Issue]:
                     message="meeting filenames must match YYYY-MM-DD.md",
                 )
             )
+    return issues
+
+
+def findings_check(state: CairnState, paths: CairnPaths) -> list[Issue]:
+    """Validate every ``knowledge/findings/*.md`` file.
+
+    Checks: filename matches ``YYYY-MM-DD-<slug>.md``, frontmatter parses,
+    frontmatter fits ``FindingFrontmatter``, filename date matches the
+    frontmatter date, author is a known collaborator, ``related`` ids resolve.
+    """
+    issues: list[Issue] = []
+    findings_dir = paths.findings
+    if not findings_dir.is_dir():
+        return issues
+
+    id_index = state.id_index()
+    collaborator_ids = state.collaborator_ids()
+
+    for child in findings_dir.iterdir():
+        if not child.is_file() or child.suffix != ".md" or child.name == ".gitkeep":
+            continue
+        name_match = FINDING_FILENAME.match(child.name)
+        if not name_match:
+            issues.append(
+                Issue(
+                    file=child,
+                    entity_id=None,
+                    message="finding filenames must match YYYY-MM-DD-<slug>.md",
+                )
+            )
+            continue
+
+        try:
+            data, _body = fm.load(child)
+        except (ValueError, OSError) as exc:
+            issues.append(
+                Issue(file=child, entity_id=None, message=f"frontmatter error: {exc}")
+            )
+            continue
+
+        try:
+            parsed = FindingFrontmatter.model_validate(data)
+        except ValidationError as exc:
+            for err in exc.errors():
+                loc = ".".join(str(p) for p in err.get("loc", ())) or "<root>"
+                issues.append(
+                    Issue(
+                        file=child,
+                        entity_id=None,
+                        message=f"frontmatter {loc}: {err.get('msg', 'invalid')}",
+                    )
+                )
+            continue
+
+        if name_match.group("date") != parsed.date.date().isoformat():
+            issues.append(
+                Issue(
+                    file=child,
+                    entity_id=None,
+                    message=(
+                        f"filename date {name_match.group('date')} does not match "
+                        f"frontmatter date {parsed.date.date().isoformat()}"
+                    ),
+                )
+            )
+        if name_match.group("slug") != parsed.slug:
+            issues.append(
+                Issue(
+                    file=child,
+                    entity_id=None,
+                    message=(
+                        f"filename slug '{name_match.group('slug')}' does not match "
+                        f"frontmatter slug '{parsed.slug}'"
+                    ),
+                )
+            )
+        if parsed.author not in collaborator_ids:
+            issues.append(
+                Issue(
+                    file=child,
+                    entity_id=None,
+                    message=f"author '{parsed.author}' is not a known collaborator",
+                )
+            )
+        for ref in parsed.related:
+            if ref not in id_index:
+                issues.append(
+                    Issue(
+                        file=child,
+                        entity_id=None,
+                        message=f"related id '{ref}' does not exist",
+                    )
+                )
+
     return issues
 
 

@@ -31,6 +31,13 @@ def render_text(snap: StatusSnapshot) -> str:
             date_str = d.date.date().isoformat()
             preview = d.decision if len(d.decision) <= 70 else d.decision[:67] + "..."
             lines.append(f"  - {d.id} ({date_str}) {preview}")
+    if snap.recent_findings:
+        lines.append("")
+        lines.append(f"Findings: {snap.finding_count} total; recent:")
+        for f in snap.recent_findings:
+            title = f.title or "(no title)"
+            preview = title if len(title) <= 70 else title[:67] + "..."
+            lines.append(f"  - {f.date} {preview}")
     if snap.latest_meeting:
         lines.append("")
         lines.append(f"Latest meeting: {snap.latest_meeting}")
@@ -60,6 +67,11 @@ def render_json(snap: StatusSnapshot) -> str:
                 "decision": d.decision,
             }
             for d in snap.recent_decisions
+        ],
+        "finding_count": snap.finding_count,
+        "recent_findings": [
+            {"path": f.path, "date": f.date, "title": f.title}
+            for f in snap.recent_findings
         ],
         "latest_meeting": snap.latest_meeting,
     }

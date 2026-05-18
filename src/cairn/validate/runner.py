@@ -32,6 +32,7 @@ def run_all(paths: CairnPaths, *, strict: bool = False) -> ValidationReport:
             issues.append(Issue(file=None, entity_id=None, message=str(exc)))
         else:
             issues.extend(checks.xrefs_resolve(state, paths))
+            issues.extend(checks.findings_check(state, paths))
             if strict:
                 issues.extend(checks.strict_warnings(state, paths))
 

@@ -100,6 +100,25 @@ def test_us_p_06_recent_decisions_capped_at_five(
     assert len(data["recent_decisions"]) == 5
 
 
+def test_us_p_06_findings_surfaced_in_status(
+    cwd: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """`cairn status` reports finding count and the most recent few."""
+    _populated(cwd, monkeypatch)
+    runner.invoke(
+        app, ["finding", "add", "--author", "kyle", "--title", "Result A"], catch_exceptions=False
+    )
+    runner.invoke(
+        app, ["finding", "add", "--author", "kyle", "--title", "Result B"], catch_exceptions=False
+    )
+    res = runner.invoke(app, ["status", "--json"], catch_exceptions=False)
+    data = json.loads(res.output)
+    assert data["finding_count"] == 2
+    assert {f["title"] for f in data["recent_findings"]} == {"Result A", "Result B"}
+    text = runner.invoke(app, ["status"], catch_exceptions=False).output
+    assert "Findings: 2 total" in text
+
+
 def test_us_p_06_overdue_action_counted(cwd: Path, monkeypatch: pytest.MonkeyPatch):
     root = _populated(cwd, monkeypatch)
     raw = yaml.safe_load((root / "state" / "action_items.yaml").read_text())

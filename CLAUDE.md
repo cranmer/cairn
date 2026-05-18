@@ -20,14 +20,24 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 ## Current phase
 
-Phase 0/1 of the build path (ARCHITECTURE.md §Build Path). Immediate priorities:
+**Phase 0 (Foundation) is complete.** Shipped: the canonical template at `templates/default/`, Pydantic v2 schemas for the five state files, and the CLI commands `cairn init`, `cairn collaborator add`, `cairn decision add`, `cairn validate`, `cairn status` (US-P-01 through US-P-06). 64 tests passing. See `docs/decisions/` for ADRs locking in YAML library, git library, template engine, and ID/timestamp conventions.
 
-1. **Canonical cairn template** at `templates/default/` — the directory tree, state file skeletons, PROJECT.md template.
-2. **State schemas as Pydantic models** — decisions, open questions, action items, goals, collaborators. These are the contract.
-3. **`cairn init`** — US-P-01 and US-P-02.
-4. **Basic state operations** — US-P-03 (add collaborator), US-P-04 (record decision), US-P-05 (validate), US-P-06 (status).
+**Phase 1 (Agent skills + supporting commands) is complete.** Shipped: `cairn branch start`, `cairn action add`, `cairn action complete`, and four bundled Claude Code-style `SKILL.md` files in `templates/default/skills/` (`orient`, `search-history`, `start-branch`, `complete-action`) that ship into newly-scaffolded cairns via `cairn init`. Covers US-A-01, US-A-03, US-A-04, US-A-05. 85 tests passing.
 
-Out of scope until later phases: MCP server, meeting capture, AI collaborator runtime, voice mode. Don't speculatively scaffold these — they have their own design considerations and will be cleaner if built later.
+**Phase 2 — Python package extensions — is in progress.** Targets and status:
+
+- [x] US-A-02 + `cairn finding add`: finding files at `knowledge/findings/YYYY-MM-DD-<slug>.md` with YAML frontmatter (date, author, title, slug, related, branch). Bundled `log-finding` skill in `templates/default/skills/`. `cairn validate` checks finding filenames, frontmatter schema, author/related cross-references.
+- [ ] US-P-07: Meeting import — `cairn meeting import --from zoom <file>` produces `knowledge/meetings/YYYY-MM-DD.md` with frontmatter and an optional `<date>-staged.yaml` of inferred decisions / action items for human review.
+- [ ] US-P-08: Artifact export — `cairn artifact export --format <astra|ara|ro-crate>` produces a directory in the chosen specification's layout. Stubs that pass schema validation are acceptable early.
+- [ ] US-P-09: Agenda draft — `cairn agenda draft --since <date|last-meeting>` writes a markdown agenda assembled from flagged items, branches needing review, recent open questions, due action items, and recent findings.
+
+Out of scope until later phases: MCP server (Phase 3), meeting capture automation (Phase 4), AI collaborator runtime with scheduling/permissions enforcement (Phase 5), voice mode (Phase 6), artifact export (Phase 2 / US-P-08), meeting import (Phase 2 / US-P-07). Don't speculatively scaffold these.
+
+## Backlog (not yet phased)
+
+Carried items that are not blocking a phase but should be picked up when convenient:
+
+- ~~Agent-driven bootstrap doc~~ — *done*. `AGENT-BOOTSTRAP.md` lives at the repo root and is linked from `QUICKSTART.md`.
 
 ## Development conventions
 

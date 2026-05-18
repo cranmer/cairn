@@ -60,6 +60,30 @@ def test_us_p_01_state_files_exist_and_are_schema_valid(cwd: Path):
     assert state.goals == []
 
 
+def test_us_p_01_bundles_skill_files(cwd: Path):
+    """Phase 1 skills ship into newly-scaffolded cairns."""
+    _invoke_init(cwd)
+    skills_dir = cwd / "test-project" / "skills"
+    expected = {"orient", "search-history", "start-branch", "complete-action"}
+    present = {p.name for p in skills_dir.iterdir() if p.is_dir()}
+    assert expected <= present, f"missing skills: {expected - present}"
+    for name in expected:
+        skill_md = skills_dir / name / "SKILL.md"
+        assert skill_md.is_file(), f"{name}/SKILL.md missing"
+        text = skill_md.read_text()
+        assert text.startswith("---\n"), f"{name}/SKILL.md must start with YAML frontmatter"
+        assert f"name: {name}" in text
+
+
+def test_us_p_01_initial_commit_excludes_dot_git_internals(cwd: Path):
+    """Regression: the initial commit must not stage .git/ files."""
+    _invoke_init(cwd)
+    repo = Repo(cwd / "test-project")
+    tracked = repo.git.ls_tree("-r", "--name-only", "HEAD").splitlines()
+    leaked = [p for p in tracked if p.startswith(".git/")]
+    assert not leaked, f"initial commit leaked .git/ paths: {leaked[:5]}"
+
+
 def test_us_p_01_project_md_interpolates_name_and_keeps_todos(cwd: Path):
     _invoke_init(cwd, "alpha-study")
     text = (cwd / "alpha-study" / "PROJECT.md").read_text()

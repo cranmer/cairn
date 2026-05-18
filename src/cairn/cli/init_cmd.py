@@ -74,7 +74,11 @@ def init(
         raise typer.Exit(code=1) from None
 
     repo = init_repo(rendered)
-    all_files = [p for p in rendered.rglob("*") if p.is_file()]
+    # Exclude anything inside the new .git/ directory (created by init_repo above).
+    all_files = [
+        p for p in rendered.rglob("*")
+        if p.is_file() and ".git" not in p.relative_to(rendered).parts
+    ]
     commit(
         repo,
         all_files,
