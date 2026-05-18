@@ -38,6 +38,7 @@ Out of scope until later phases: MCP server (Phase 3), meeting capture automatio
 Carried items that are not blocking a phase but should be picked up when convenient:
 
 - ~~Agent-driven bootstrap doc~~ — *done*. `AGENT-BOOTSTRAP.md` lives at the repo root and is linked from `QUICKSTART.md`.
+- **End-to-end agent-following test of `AGENT-BOOTSTRAP.md`.** A pytest integration test (probably `tests/integration/test_bootstrap_e2e.py`) that drives a fresh Claude Code agent — via the Claude Agent SDK or headless `claude -p` — through `AGENT-BOOTSTRAP.md` against a fixture project repo in a tmpdir, then asserts structural invariants on the resulting cairn (`.cairn` marker present, `cairn validate` exits 0, `PROJECT.md` has the expected sections populated, the first collaborator is registered). Marked `@pytest.mark.integration` and gated on opt-in so it doesn't run on every local `pytest`. CI variant: a GitHub Actions workflow with `ANTHROPIC_API_KEY` as a repo secret, triggered on PRs that touch `AGENT-BOOTSTRAP.md` / `QUICKSTART.md` / `templates/default/skills/` and on a weekly cron — not on every PR (real money per run). Pin the model and cap `max_turns` so flakes don't burn budget. Subagent shortcut for prototyping is fine before investing in CI plumbing.
 
 ## Development conventions
 
