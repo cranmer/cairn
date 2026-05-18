@@ -35,7 +35,7 @@ git config --global user.email "you@example.com"
 
 ```sh
 cd /tmp                              # or anywhere outside the framework repo
-cairn init my-project --pi-name "Your Name" --no-input
+cairn init my-project --no-input
 cd my-project
 ```
 
@@ -49,8 +49,8 @@ ls state/                            # five YAML files, all []
 ## 4. Add collaborators and a decision
 
 ```sh
-cairn collaborator add --id you   --name "Your Name"    --role PI
-cairn collaborator add --id maria --name "Maria Santos" --role postdoc \
+cairn collaborator add --id you   --name "Your Name"    --role "project lead"
+cairn collaborator add --id maria --name "Maria Santos" --role "methods" \
                        --expertise "causal inference" --expertise R
 
 cairn decision add --author you \
@@ -95,7 +95,7 @@ cairn validate                       # exit 1, names the file + entity + bad ref
 cat <<'EOF' > team.yaml
 - id: kyle
   name: Kyle Cranmer
-  role: PI
+  role: project lead
 - id: lit-monitor
   name: Literature Monitor
   role: literature monitor

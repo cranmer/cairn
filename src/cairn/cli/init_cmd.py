@@ -31,7 +31,6 @@ def init(
         "--template",
         help="Local path or cookiecutter URL. Defaults to Cairn's bundled template.",
     ),
-    pi_name: str | None = typer.Option(None, "--pi-name", help="PI's full name."),
     github_org: str | None = typer.Option(None, "--github-org", help="GitHub org (optional)."),
     force: bool = typer.Option(
         False, "--force", help="Overwrite an existing directory at the destination."
@@ -42,7 +41,7 @@ def init(
 ) -> None:
     """Initialize a new cairn at ``./<project_name>``."""
     dest_parent = Path.cwd()
-    context = {"project_name": project_name, "pi_name": pi_name, "github_org": github_org}
+    context = {"project_name": project_name, "github_org": github_org}
 
     try:
         identity = get_user_identity(None)

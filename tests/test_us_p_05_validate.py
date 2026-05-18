@@ -15,7 +15,7 @@ runner = CliRunner()
 
 
 def _bootstrap(cwd: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    runner.invoke(app, ["init", "p", "--pi-name", "PI", "--no-input"], catch_exceptions=False)
+    runner.invoke(app, ["init", "p", "--no-input"], catch_exceptions=False)
     root = cwd / "p"
     monkeypatch.chdir(root)
     runner.invoke(

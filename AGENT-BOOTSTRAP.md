@@ -4,6 +4,13 @@
 
 If the user has already created a cairn and just wants you to orient inside it, this file is the wrong one — point them at `QUICKSTART.md` and stop.
 
+## Session affordances you should use
+
+Two things about your Claude Code session that matter for this bootstrap:
+
+- **Working directory persists** across your Bash tool calls. One `cd <project-path>` after the cairn is created is enough — every subsequent command runs in that directory unless you `cd` away. The user shouldn't have to see repeated `cd` lines.
+- **Shell state does NOT persist** between Bash calls. Anything you `source`, `export`, or `conda activate` is gone by the next tool call. This is why we strongly prefer pipx in Step 2: it puts `cairn` on the user's normal PATH so you don't have to fight activation. For the env-based fallback path, see the `.claude/settings.local.json` trick in Step 6.5 — it makes PATH changes durable across your Bash calls.
+
 ## What you're going to do
 
 1. Verify the user has Python ≥ 3.10 and `git` on PATH.
@@ -12,6 +19,7 @@ If the user has already created a cairn and just wants you to orient inside it, 
 4. Scaffold a new cairn at a location the user agrees to.
 5. Register the user as the first collaborator.
 6. Show the user what they have and how to use the bundled skills.
+7. (If env-based install) write `.claude/settings.local.json` so this session lives *inside* the cairn instead of fighting activation.
 
 ## Step 1 — Verify prerequisites
 
@@ -24,32 +32,45 @@ git --version       # any recent version
 
 If either is missing or below the required version, **stop** and tell the user what to install before continuing. Do not try to install Python or git for them.
 
-## Step 2 — Choose an install environment ★
+## Step 2 — Install Cairn ★
 
-Ask the user which Python environment they want to install into. Offer (in this order):
+> **Important UX note for you (the agent).** Your shell tool starts a fresh process for each command — `conda activate` or `source venv/bin/activate` in one tool call does NOT persist to the next. If you install into a conda env or venv, every subsequent `cairn` invocation will need either re-activation or an absolute path (`~/.venvs/cairn/bin/cairn …`), which is clunky for the user. **Prefer `pipx` unless the user has a strong reason otherwise** — it installs Cairn into its own isolated env and exposes the `cairn` entry point on the user's normal PATH, so subsequent commands Just Work without activation.
 
-1. **A fresh virtual environment** at `~/.venvs/cairn` (recommended if they don't have a preference).
-2. **A user-supplied venv / pixi / uv / conda environment** they already have active.
-3. **The system Python** (last resort — warn that `pip install --user` is preferred over global).
+Offer the user these options, in this order:
 
-Wait for their choice. Then run the install:
+1. **pipx** *(recommended).* One install, `cairn` on PATH everywhere afterward, no activation needed for any subsequent step.
+2. **A user-supplied venv / conda / pixi / uv environment** they already have active. Works, but every subsequent `cairn` command in this session will need the env's full binary path (e.g., `~/.venvs/cairn/bin/cairn …`) because your shell tool resets between calls.
+3. **`pip install --user`** as a fallback. Installs to `~/.local/bin/cairn` (assuming that's on PATH).
+
+Install commands:
 
 ```sh
-# Option 1 — fresh venv:
-python -m venv ~/.venvs/cairn && source ~/.venvs/cairn/bin/activate
+# Option 1 — pipx (recommended)
+pipx install git+https://github.com/cranmer/cairn
 
-# Then, in whichever environment they chose:
+# Option 2 — existing env (caller activates it themselves first)
 pip install git+https://github.com/cranmer/cairn
+
+# Option 3 — user-site
+pip install --user git+https://github.com/cranmer/cairn
+```
+
+If `pipx` itself isn't installed, offer to install it for the user:
+
+```sh
+python -m pip install --user pipx && python -m pipx ensurepath
+# user may need to restart their shell after ensurepath, or `source ~/.bashrc` / `~/.zshrc`
 ```
 
 Verify the install worked:
 
 ```sh
+which cairn      # capture this path — if `cairn` ever stops resolving later, use this absolute path
 cairn --help     # should list init, collaborator, decision, action, branch, finding, validate, status, version
 cairn version
 ```
 
-If `cairn --help` doesn't work, troubleshoot the PATH before continuing.
+If `cairn --help` doesn't work and the user picked option 2 (env-based install), use the full path (`<env>/bin/cairn`) for every subsequent step in this doc and tell the user explicitly: *"Your shell will need `conda activate cairn` (or equivalent) before `cairn` works in a new terminal."* If they want to avoid that, suggest reinstalling via pipx.
 
 ## Step 3 — Confirm git identity ★
 
@@ -77,13 +98,12 @@ Ask the user:
 
 - **Project name** (short, kebab-case if possible — this becomes the directory name and a few labels inside `PROJECT.md`).
 - **Parent directory** (defaults to `~/projects/` or wherever they keep their work).
-- **PI name** (the principal investigator; can be the user themselves).
 
-Echo all three values back, then ask "shall I proceed?" before running:
+Echo both values back, then ask "shall I proceed?" before running:
 
 ```sh
 cd <parent-directory>
-cairn init <project-name> --pi-name "<PI Name>" --no-input
+cairn init <project-name> --no-input
 cd <project-name>
 ```
 
@@ -100,8 +120,10 @@ cat state/collaborators.yaml   # should be "[]"
 Ask the user:
 
 - **Collaborator id** — short, kebab-case, lowercase (e.g., `kyle`, `maria-s`). This is the canonical handle used in attributions and cross-references throughout the cairn.
-- **Role** (e.g., "PI", "postdoc", "PhD student", "RA").
+- **Role** — what they actually *do* on this project. Bias toward activity-based descriptions ("designing generative models", "running ablation experiments", "maintaining the data pipeline", "writing the introduction"), not titles ("PI", "postdoc", "professor"). Cairn intentionally avoids prescribing a hierarchy; whatever description fits the user's actual contribution is right. If they offer a title, that's also fine — accept it.
 - Optional: GitHub handle, expertise tags, current focus.
+
+When offering suggestions in any interactive prompt, suggest activity-based phrasings, not titles. Do not present role as a choice between fixed academic titles.
 
 Then run:
 
@@ -144,9 +166,38 @@ cairn status        # compact summary, <30 lines
 cairn validate      # confirms schema + cross-references are clean
 ```
 
+## Step 6.5 — Make this session live *inside* the cairn (env-based installs only) ★
+
+Skip this step if the user installed via **pipx** in Step 2 — `cairn` is already on the user's normal PATH and no further plumbing is needed; just `cd <project-path>` once and you're done.
+
+For users who picked Option 2 (an existing venv / conda / pixi / uv env), `cairn` only resolves when that env is activated, and your Bash tool resets shell state between calls. The durable fix is to write a `.claude/settings.local.json` file at the cairn root that prepends the env's `bin/` to `PATH`. Claude Code reads this file when a session is opened at (or below) that directory.
+
+1. `cd <project-path>` (one time — the working directory will persist).
+2. Capture the env's `bin/` directory. If you remember the path from Step 2, use it directly. Otherwise: `which cairn` (after activating the env once, e.g., `conda activate cairn`) returns `<env>/bin/cairn`; the relevant directory is the parent.
+3. Write `.claude/settings.local.json` inside the cairn:
+
+   ```json
+   {
+     "env": {
+       "PATH": "/absolute/path/to/env/bin:$PATH"
+     }
+   }
+   ```
+
+4. Add `.claude/settings.local.json` to the cairn's `.gitignore` — this file contains a path specific to the user's machine and shouldn't be shared. Confirm with the user before editing `.gitignore`, then append:
+
+   ```
+   # Claude Code per-user, per-machine settings — paths are local
+   .claude/settings.local.json
+   ```
+
+5. Verify in a fresh Bash call (no env activation) that `cairn --help` now resolves.
+
+Tell the user: *"Future Claude Code sessions opened in this cairn will pick this up automatically. You won't need to activate the env in those sessions either."*
+
 ## What to do if anything fails
 
-- **`cairn` command not found after install**: the install env's `bin/` isn't on PATH. Tell the user; offer to use the absolute path (`~/.venvs/cairn/bin/cairn …`) for the rest of the session.
+- **`cairn` command not found after install**: the install env's `bin/` isn't on PATH. Tell the user; offer to use the absolute path (`~/.venvs/cairn/bin/cairn …`) for the rest of the session, OR write `.claude/settings.local.json` as in Step 6.5.
 - **`cairn init` errors with "no git user identity configured"**: go back to Step 3 and set it; do not invent.
 - **`cairn init` errors with "refusing to overwrite"**: a directory with that name already exists. Ask the user whether to pick a new name or pass `--force` (which deletes the existing directory; warn first).
 - **Any schema or YAML error**: stop, show the user the exact error, and ask how to proceed. Do not edit state files by hand to "fix" them without confirmation.

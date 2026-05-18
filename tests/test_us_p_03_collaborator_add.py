@@ -17,7 +17,7 @@ runner = CliRunner()
 
 def _init(cwd: Path, monkeypatch: pytest.MonkeyPatch, name: str = "p") -> Path:
     res = runner.invoke(
-        app, ["init", name, "--pi-name", "PI", "--no-input"], catch_exceptions=False
+        app, ["init", name, "--no-input"], catch_exceptions=False
     )
     assert res.exit_code == 0, res.output
     root = cwd / name

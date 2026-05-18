@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,21 +40,54 @@ def _from_env() -> Identity | None:
     return None
 
 
-def _from_repo_or_global(repo: Repo | None) -> Identity | None:
-    candidates = []
-    if repo is not None:
-        candidates.append(repo.config_reader())
+def _git_config_value(scope: str, key: str) -> str | None:
+    """Read a value by shelling out to ``git config <scope> <key>``.
+
+    ``scope`` is e.g. ``"--global"`` or ``"--system"``. Returns ``None`` if
+    ``git`` is missing, the lookup times out, or the key is unset.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "config", scope, key],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    value = result.stdout.strip()
+    return value or None
+
+
+def _from_repo(repo: Repo) -> Identity | None:
+    """Read identity from the repo's config reader (includes inherited global/system)."""
     with contextlib.suppress(Exception):
-        candidates.append(Repo.config_reader("global"))
-    for reader in candidates:
-        try:
-            name = reader.get_value("user", "name")
-            email = reader.get_value("user", "email")
-        except Exception:
-            continue
+        reader = repo.config_reader()
+        name = reader.get_value("user", "name", default=None)
+        email = reader.get_value("user", "email", default=None)
         if name and email:
             return Identity(name=str(name), email=str(email))
     return None
+
+
+def _from_global() -> Identity | None:
+    """Read identity from ``git config --global`` without needing a repo."""
+    name = _git_config_value("--global", "user.name")
+    email = _git_config_value("--global", "user.email")
+    if name and email:
+        return Identity(name=name, email=email)
+    return None
+
+
+def _from_repo_or_global(repo: Repo | None) -> Identity | None:
+    if repo is not None:
+        ident = _from_repo(repo)
+        if ident is not None:
+            return ident
+    return _from_global()
 
 
 def get_user_identity(repo: Repo | None = None) -> Identity:

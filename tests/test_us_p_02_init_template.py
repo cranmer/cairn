@@ -16,12 +16,12 @@ def _make_minimal_template(tmp_path: Path) -> Path:
     root = tmp_path / "alt-template"
     root.mkdir()
     (root / "cookiecutter.json").write_text(
-        '{"project_name": "alt", "pi_name": "TODO", "github_org": ""}\n'
+        '{"project_name": "alt", "github_org": ""}\n'
     )
     proj = root / "{{cookiecutter.project_name}}"
     proj.mkdir()
     (proj / "PROJECT.md").write_text(
-        "# {{cookiecutter.project_name}} (alt template)\n\nPI: {{cookiecutter.pi_name}}\n"
+        "# {{cookiecutter.project_name}} (alt template)\n"
     )
     (proj / "README.md").write_text("alt readme\n")
     (proj / ".gitignore").write_text("/scratch/\n")
@@ -41,7 +41,6 @@ def test_us_p_02_local_path_template(cwd: Path, tmp_path_factory):
         [
             "init", "from-alt-template",
             "--template", str(template_root),
-            "--pi-name", "Dr. Test",
             "--no-input",
         ],
         catch_exceptions=False,
@@ -49,14 +48,13 @@ def test_us_p_02_local_path_template(cwd: Path, tmp_path_factory):
     assert result.exit_code == 0, result.output
     text = (cwd / "from-alt-template" / "PROJECT.md").read_text()
     assert "# from-alt-template (alt template)" in text
-    assert "Dr. Test" in text
 
 
 def test_us_p_02_defaults_to_bundled_template(cwd: Path):
     """No --template flag means the bundled default is used."""
     result = runner.invoke(
         app,
-        ["init", "default-tpl-test", "--pi-name", "Default", "--no-input"],
+        ["init", "default-tpl-test", "--no-input"],
         catch_exceptions=False,
     )
     assert result.exit_code == 0, result.output
@@ -76,7 +74,6 @@ def test_us_p_02_url_template_without_extra_errors_helpfully(cwd: Path, monkeypa
         [
             "init", "ignored",
             "--template", "https://github.com/example/template",
-            "--pi-name", "X",
             "--no-input",
         ],
         catch_exceptions=False,

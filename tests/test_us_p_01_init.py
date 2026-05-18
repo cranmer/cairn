@@ -17,7 +17,7 @@ runner = CliRunner()
 def _invoke_init(cwd: Path, name: str = "test-project", *extra: str):
     return runner.invoke(
         app,
-        ["init", name, "--pi-name", "Test PI", *extra],
+        ["init", name, *extra],
         catch_exceptions=False,
     )
 
@@ -96,8 +96,6 @@ def test_us_p_01_project_md_interpolates_name_and_keeps_todos(cwd: Path):
     text = (cwd / "alpha-study" / "PROJECT.md").read_text()
     assert "# alpha-study" in text
     assert "TODO" in text
-    # PI name was passed via --pi-name:
-    assert "Test PI" in text
 
 
 def test_us_p_01_initial_commit_attributed_to_user(cwd: Path):

@@ -50,7 +50,15 @@ def _append_and_commit(
 def add(
     id_: str | None = typer.Option(None, "--id", help="Collaborator id (kebab-case)."),
     name: str | None = typer.Option(None, "--name", help="Display name."),
-    role: str | None = typer.Option(None, "--role", help="Role, e.g. 'postdoc' or 'PI'."),
+    role: str | None = typer.Option(
+        None,
+        "--role",
+        help=(
+            "What you do on this project, in your own words. Prefer activity-based "
+            "phrasing (e.g., 'designing generative models', 'running ablation "
+            "experiments', 'maintaining the data pipeline') over titles."
+        ),
+    ),
     type_: str = typer.Option("human", "--type", help="'human' or 'ai-collaborator'."),
     github: str | None = typer.Option(None, "--github", help="GitHub handle."),
     expertise: list[str] = typer.Option(

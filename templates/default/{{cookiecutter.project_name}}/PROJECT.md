@@ -31,5 +31,6 @@ TODO: What is the group actively working on this month? List 2–4 items, each l
 
 ## Project metadata
 
-- **PI**: {{cookiecutter.pi_name}}
 - **GitHub org**: {{cookiecutter.github_org}}
+
+(People on the project — and how they describe their own roles — live in `state/collaborators.yaml`, not here.)
