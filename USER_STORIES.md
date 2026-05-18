@@ -129,6 +129,19 @@ The `cairn` Python package is the canonical tooling for creating and managing ca
 - The draft is a plain markdown file with section headers; not committed automatically.
 - Each agenda item carries a reference back to its source (`Q-012`, `branch:kyle/alt-loss`, etc.).
 
+### US-P-10: Initialize a cairn for an existing project
+
+**Actor**: A contributor to an ongoing project that already has one or more code / data / paper repos, deciding to add a cairn for group coordination going forward.
+
+**Story**: As a contributor to an existing project, I want to spin up a cairn alongside our existing repos so the team can start using it for shared memory without having to migrate or restructure what we already have.
+
+**Expected behavior**
+- `cairn init <project-name>` (or AGENT-BOOTSTRAP) can be run from any directory; the cairn is created as a *new* git repo, **not inside** any existing project repo. A reasonable place is `~/projects/<project-name>-cairn/`, a sibling of the user's other project repos. The CLI does not enforce this — it just refuses to overwrite an existing target directory without `--force`.
+- The bootstrapping agent, when it already has context from being in a Claude Code session inside one of the project's working repos, can pre-populate `PROJECT.md`'s "Overview", "Current focus", and "Related repositories" sections from that context (the project repo's top-level `README.md`, recent git log, contributors file). The user reviews and approves before the cairn's initial commit; the agent does not auto-commit pre-populated content.
+- The cairn's `PROJECT.md` includes a **Related repositories** section listing the project's existing code/data/paper repos with a one-line description per repo. Format is free-form markdown; structured cross-referencing (decisions → repo + commit SHA, findings → file in a repo) is future work and out of scope for this story.
+- The agent does not modify any of the existing project repos during cairn bootstrap. The cairn is purely additive.
+- The first collaborator registration (Step 5 of AGENT-BOOTSTRAP) and the rest of the standard bootstrap flow are unchanged.
+
 ---
 
 ## §2 — Agent / Skill Stories

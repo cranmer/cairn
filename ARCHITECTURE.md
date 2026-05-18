@@ -83,6 +83,8 @@ The architecture is intentionally agnostic about which clients exist. New ones a
 
 ## Repository Structure
 
+A cairn is a standalone git repository, **separate from the project's code/data/paper repos**. A typical research project already has one or more such "working" repos; the cairn is an additional repo that holds the coordination layer — decisions, open questions, findings, action items, meeting notes — that doesn't fit naturally inside any working repo. The cairn references the working repos (initially via free-form notes in `PROJECT.md`'s "Related repositories" section; structured cross-references — e.g., linking a finding to a specific commit SHA in a code repo — are future work). One project = one cairn = one git repo, but a project may have several code/data repos that the cairn coordinates.
+
 ```
 project-name/
   README.md                 # human-facing project overview

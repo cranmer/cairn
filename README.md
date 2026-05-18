@@ -9,6 +9,8 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 - **Cairn** (capitalized) is the framework — this repo, the Python package, the conventions.
 - **a cairn** (lowercase) is an instance — one research project's repository organized following Cairn's conventions. A research group runs one cairn per project.
 
+**A cairn is not a project's code repo.** A typical research project already has one or more git repos for its code, analyses, paper, and data; the cairn is a *separate*, additional repo that lives alongside them and holds the group's shared memory — decisions, open questions, findings, action items, meeting notes — that doesn't naturally fit inside any one code repo. The cairn references the others (via free-form notes for now, structured cross-references later) without containing them.
+
 > **Status:** Phase 0/1 implemented. The Python package scaffolds new cairns, manages collaborators and decisions, validates state, and reports project status. See [QUICKSTART.md](QUICKSTART.md) for a five-minute tour. For the full vision, see [the design overview](docs/overview.html).
 
 ## What it enables
