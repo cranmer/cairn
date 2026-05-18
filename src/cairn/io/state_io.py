@@ -30,8 +30,29 @@ def _load_list(path, model: type[M]) -> list[M]:
         raise SchemaError(f"{path}: {exc}") from exc
 
 
+_AI_ONLY_COLLABORATOR_FIELDS = frozenset({"trigger", "scope", "permissions"})
+
+
+def _serialize(model: BaseModel) -> dict[str, Any]:
+    """Render a state model as a YAML-ready dict.
+
+    Substrate-as-truth: keep optional fields visible (``exclude_none=False``)
+    so the schema is documented by example in the file itself, rather than
+    quietly dropping fields the user might want to know about.
+
+    Exception: on a human ``Collaborator``, drop the AI-collaborator-only
+    fields (``trigger``, ``scope``, ``permissions``) — emitting them as
+    ``null`` on humans is misleading rather than informative.
+    """
+    data: dict[str, Any] = model.model_dump(mode="json", exclude_none=False)
+    if isinstance(model, Collaborator) and data.get("type") != "ai-collaborator":
+        for f in _AI_ONLY_COLLABORATOR_FIELDS:
+            data.pop(f, None)
+    return data
+
+
 def _dump_list(path, items: list[BaseModel]) -> None:
-    serialized: list[dict[str, Any]] = [m.model_dump(mode="json", exclude_none=True) for m in items]
+    serialized = [_serialize(m) for m in items]
     dump_yaml(path, serialized)
 
 

@@ -17,8 +17,24 @@ from ruamel.yaml import YAML
 
 _writer = YAML()
 _writer.preserve_quotes = True
-_writer.indent(mapping=2, sequence=4, offset=2)
+# Top-level sequences start at column 0 (sequence=2, offset=0). The previous
+# (4, 2) settings produced a leading two-space indent on top-level list items,
+# which is legal YAML but unusual and causes diff noise on hand-edits.
+_writer.indent(mapping=2, sequence=2, offset=0)
 _writer.width = 100
+
+
+def _represent_none(representer, _data):  # ruamel signature
+    """Render Python ``None`` as the explicit token ``null`` rather than blank.
+
+    Without this, an optional unset field renders as ``key:`` which is legal
+    YAML but visually identical to "this key has no body" and easy to misread.
+    ``key: null`` is unambiguous.
+    """
+    return representer.represent_scalar("tag:yaml.org,2002:null", "null")
+
+
+_writer.representer.add_representer(type(None), _represent_none)
 
 
 def load_yaml(path: Path) -> list[dict[str, Any]]:

@@ -128,7 +128,9 @@ def add(
         typer.echo(f"error: schema validation failed:\n{exc}", err=True)
         raise typer.Exit(code=1) from None
 
-    fm = validated.model_dump(mode="json", exclude_none=True)
+    # Substrate-as-truth: keep optional fields visible so the schema is
+    # self-documenting in the frontmatter. Empty/absent values render as null.
+    fm = validated.model_dump(mode="json", exclude_none=False)
     body_to_write = (
         body_text.rstrip("\n") + "\n"
         if body_text

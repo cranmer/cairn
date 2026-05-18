@@ -146,11 +146,12 @@ git log --oneline   # the new commit "Add collaborator '<id>'"
 
 ## Step 6 — Show the user what they have
 
-Tell the user that the cairn now includes five bundled `SKILL.md` files under `skills/`:
+Tell the user that the cairn now includes six bundled `SKILL.md` files under `skills/`:
 
 - **orient** — what you (the agent) should read at session start to be useful without burning context.
 - **search-history** — local-file scan for "was X considered?" questions.
 - **start-branch** — wraps `cairn branch start "<desc>"` for exploratory work.
+- **resolve-branch** — wraps `cairn branch close <name>` when an exploration branch is merged or abandoned. Counterpart to `start-branch`.
 - **complete-action** — wraps `cairn action complete <id>` when something gets done.
 - **log-finding** — wraps `cairn finding add` when the user discovers something worth recording.
 

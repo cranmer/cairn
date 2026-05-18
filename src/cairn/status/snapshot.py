@@ -44,6 +44,12 @@ class FindingSummary:
 @dataclass
 class StatusSnapshot:
     branch: str
+    project_name: str = ""
+    cairn_root: str = ""
+    collaborator_count: int = 0
+    collaborator_ids: list[str] = field(default_factory=list)
+    goal_count: int = 0
+    decision_count: int = 0
     open_question_count: int = 0
     action_breakdown: ActionBreakdown = field(default_factory=ActionBreakdown)
     branches: list[BranchSummary] = field(default_factory=list)
@@ -52,6 +58,9 @@ class StatusSnapshot:
     incomplete_action_count: int = 0
     finding_count: int = 0
     recent_findings: list[FindingSummary] = field(default_factory=list)
+    git_branch: str | None = None  # actual git HEAD branch (may differ from `branch`)
+    last_commit_sha: str | None = None  # short SHA
+    last_commit_message: str | None = None  # first line
 
 
 def _classify_actions(actions: list[ActionItem], today: date) -> ActionBreakdown:
@@ -158,6 +167,19 @@ def _state_from_treeish(repo: Repo, branch: str) -> CairnState:
     )
 
 
+def _project_name_from_project_md(paths: CairnPaths) -> str:
+    """Best-effort extraction of the project name from PROJECT.md's first H1."""
+    if not paths.project_md.is_file():
+        return paths.root.name
+    for line in paths.project_md.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# "):
+            return stripped[2:].strip() or paths.root.name
+        if stripped:
+            break
+    return paths.root.name
+
+
 def build_status(
     paths: CairnPaths,
     state: CairnState,
@@ -166,10 +188,18 @@ def build_status(
     today: date | None = None,
 ) -> StatusSnapshot:
     today = today or datetime.now(timezone.utc).date()
-    branch_name = branch or "main"
+    branch_label = branch or "current"
     repo = Repo(paths.root)
 
-    snap = StatusSnapshot(branch=branch_name)
+    snap = StatusSnapshot(branch=branch_label)
+    snap.project_name = _project_name_from_project_md(paths)
+    snap.cairn_root = str(paths.root)
+
+    snap.collaborator_count = len(state.collaborators)
+    snap.collaborator_ids = [c.id for c in state.collaborators]
+    snap.goal_count = len(state.goals)
+    snap.decision_count = len(state.decisions)
+
     open_qs = [q for q in state.questions if q.status == "open"]
     snap.open_question_count = len(open_qs)
 
@@ -184,6 +214,19 @@ def build_status(
 
     snap.latest_meeting = _latest_meeting(paths)
     snap.finding_count, snap.recent_findings = _findings_summary(paths)
+
+    try:
+        snap.git_branch = repo.active_branch.name
+    except TypeError:
+        snap.git_branch = None  # detached HEAD
+    try:
+        head_commit = repo.head.commit
+        snap.last_commit_sha = head_commit.hexsha[:7]
+        msg = head_commit.message
+        snap.last_commit_message = msg.splitlines()[0] if msg else ""
+    except (ValueError, AttributeError):
+        pass
+
     return snap
 
 

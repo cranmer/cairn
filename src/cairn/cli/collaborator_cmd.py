@@ -25,10 +25,14 @@ def _check_unique(paths: CairnPaths, new_ids: list[str]) -> None:
     existing = {c.id for c in load_collaborators(paths)}
     duplicates = sorted(set(new_ids) & existing)
     if duplicates:
-        raise CollisionError(f"collaborator id(s) already in use: {', '.join(duplicates)}")
+        word = "id" if len(duplicates) == 1 else "ids"
+        raise CollisionError(
+            f"collaborator {word} already in use: {', '.join(duplicates)}"
+        )
     intra = sorted({x for x in new_ids if new_ids.count(x) > 1})
     if intra:
-        raise CollisionError(f"duplicate id(s) within input: {', '.join(intra)}")
+        word = "id" if len(intra) == 1 else "ids"
+        raise CollisionError(f"duplicate {word} within input: {', '.join(intra)}")
 
 
 def _append_and_commit(
@@ -134,4 +138,5 @@ def add(
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from None
 
-    typer.echo(f"Added {len(new_models)} collaborator(s).")
+    n = len(new_models)
+    typer.echo(f"Added {n} collaborator{'' if n == 1 else 's'}.")

@@ -73,7 +73,12 @@ def test_us_p_06_text_output_under_30_lines(cwd: Path, monkeypatch: pytest.Monke
     assert res.exit_code == 0, res.output
     assert len(res.output.splitlines()) <= 30
     assert "Open questions: 2" in res.output
-    assert "Incomplete actions: 2" in res.output
+    assert "Actions: 2 incomplete" in res.output
+    # Header includes the project name and root path:
+    assert res.output.startswith("Cairn 'p'")
+    # Collaborator and decision counts surface:
+    assert "Collaborators: 2" in res.output
+    assert "Decisions:" in res.output
 
 
 def test_us_p_06_json_parses_and_has_required_keys(
@@ -116,7 +121,7 @@ def test_us_p_06_findings_surfaced_in_status(
     assert data["finding_count"] == 2
     assert {f["title"] for f in data["recent_findings"]} == {"Result A", "Result B"}
     text = runner.invoke(app, ["status"], catch_exceptions=False).output
-    assert "Findings: 2 total" in text
+    assert "Findings: 2" in text or "Findings (2 total" in text
 
 
 def test_us_p_06_overdue_action_counted(cwd: Path, monkeypatch: pytest.MonkeyPatch):
