@@ -22,39 +22,22 @@ from jinja2 import Environment
 def default_template_root() -> Path:
     """Return the path to the bundled default template.
 
-    Resolution order:
-
-    1. ``<cairn-package>/_templates/default/`` — the location used in
-       wheels built by hatchling (the ``force-include`` rule in
-       pyproject.toml copies the repo's ``templates/`` into the wheel
-       under this prefix). This path is the one a ``pip install`` or
-       ``pipx install`` user hits.
-    2. ``<repo-root>/templates/default/`` — the development-checkout
-       layout, where the repo root is three directories above this
-       file. Used during editable installs and when running tests.
+    The templates live inside the ``cairn`` package (``src/cairn/templates/``
+    in the repo, ``cairn/templates/`` in the installed wheel), so the same
+    ``importlib.resources`` lookup works for editable installs, regular pip
+    installs, and pipx alike.
     """
-    try:
-        installed = importlib.resources.files("cairn").joinpath("_templates", "default")
-        # ``installed`` is a Traversable; we need a real filesystem path. For
-        # wheels installed on disk this is always a Path; only zipped installs
-        # would differ (we don't ship those).
-        installed_path = Path(str(installed))
-        if installed_path.is_dir():
-            return installed_path
-    except (ModuleNotFoundError, AttributeError, OSError):
-        pass
-
-    here = Path(__file__).resolve()
-    dev_candidate = here.parents[3] / "templates" / "default"
-    if dev_candidate.is_dir():
-        return dev_candidate
-
-    raise FileNotFoundError(
-        "default template not found in either the installed package "
-        f"(cairn/_templates/default) or the dev checkout ({dev_candidate}). "
-        "If this is a pip/pipx install, the wheel may be missing template "
-        "data — reinstall from a recent build."
-    )
+    root = importlib.resources.files("cairn").joinpath("templates", "default")
+    # ``files()`` returns a Traversable; for wheels installed on disk it is
+    # always a real filesystem path (we don't ship zipped wheels).
+    path = Path(str(root))
+    if not path.is_dir():
+        raise FileNotFoundError(
+            f"default template not found at {path}. This usually means cairn was "
+            "installed without its bundled templates — try `pipx reinstall cairn` "
+            "(or your equivalent), or file an issue."
+        )
+    return path
 
 
 def _read_cookiecutter_defaults(template_root: Path) -> dict[str, Any]:
