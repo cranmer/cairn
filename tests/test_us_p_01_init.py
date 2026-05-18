@@ -75,6 +75,12 @@ def test_us_p_01_bundles_skill_files(cwd: Path):
     }
     present = {p.name for p in skills_dir.iterdir() if p.is_dir()}
     assert expected <= present, f"missing skills: {expected - present}"
+    for name in expected:
+        skill_md = skills_dir / name / "SKILL.md"
+        assert skill_md.is_file(), f"{name}/SKILL.md missing"
+        text = skill_md.read_text()
+        assert text.startswith("---\n"), f"{name}/SKILL.md must start with YAML frontmatter"
+        assert f"name: {name}" in text
 
 
 def test_us_p_01_bundles_tracking_stance_guide(cwd: Path):
@@ -86,12 +92,6 @@ def test_us_p_01_bundles_tracking_stance_guide(cwd: Path):
     # Sanity: the guide should mention the capture-eagerly posture and signals table.
     assert "capture eagerly" in text.lower()
     assert "signals to listen for" in text.lower()
-    for name in expected:
-        skill_md = skills_dir / name / "SKILL.md"
-        assert skill_md.is_file(), f"{name}/SKILL.md missing"
-        text = skill_md.read_text()
-        assert text.startswith("---\n"), f"{name}/SKILL.md must start with YAML frontmatter"
-        assert f"name: {name}" in text
 
 
 def test_us_p_01_bundles_claude_session_start_hook(cwd: Path):
