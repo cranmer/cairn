@@ -7,6 +7,15 @@ from pathlib import Path
 
 from .errors import NotACairnError
 
+# Marker file at the cairn root. See docs/decisions/0006-cairn-discovery-and-pairing.md.
+MARKER_FILE = ".cairn"
+
+# Pre-marker cairns predate ADR-0006 and identified themselves only by the
+# presence of state/collaborators.yaml. Kept as a transitional fallback so
+# in-the-wild cairns remain discoverable; `cairn validate` warns when the
+# marker is missing so users can run the documented one-line backfill.
+_LEGACY_MARKER = "state/collaborators.yaml"
+
 STATE_FILES = (
     "decisions.yaml",
     "open_questions.yaml",
@@ -91,8 +100,35 @@ class CairnPaths:
 
 
 def is_cairn_root(path: Path) -> bool:
-    """A directory is a cairn root if it has ``state/collaborators.yaml``."""
-    return (path / "state" / "collaborators.yaml").is_file()
+    """A directory is a cairn root if it carries the ``.cairn`` marker.
+
+    Falls back to the pre-marker convention (``state/collaborators.yaml``)
+    so cairns scaffolded before ADR-0006 stay discoverable. The fallback
+    will be removed once no pre-marker cairns remain in active use.
+    """
+    return (path / MARKER_FILE).is_file() or (path / _LEGACY_MARKER).is_file()
+
+
+def has_marker(path: Path) -> bool:
+    """True iff the cairn at ``path`` has the canonical ``.cairn`` marker."""
+    return (path / MARKER_FILE).is_file()
+
+
+def write_marker(root: Path, name: str) -> None:
+    """Write the ``.cairn`` marker file at ``root``.
+
+    Idempotent: if the marker already exists with the same name, it is left
+    alone. Otherwise the file is (over)written with the canonical contents.
+    """
+    target = root / MARKER_FILE
+    contents = (
+        "# Cairn root marker — managed by `cairn init`. Do not edit by hand.\n"
+        "# Presence of this file identifies the containing directory as a cairn root.\n"
+        f'name = "{name}"\n'
+    )
+    if target.is_file() and target.read_text(encoding="utf-8") == contents:
+        return
+    target.write_text(contents, encoding="utf-8")
 
 
 def find_cairn_root(start: Path) -> Path:

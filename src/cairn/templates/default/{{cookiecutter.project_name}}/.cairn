@@ -1,0 +1,3 @@
+# Cairn root marker — managed by `cairn init`. Do not edit by hand.
+# Presence of this file identifies the containing directory as a cairn root.
+name = "{{cookiecutter.project_name}}"

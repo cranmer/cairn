@@ -8,7 +8,7 @@ import yaml
 from pydantic import TypeAdapter, ValidationError
 
 from ..io import frontmatter as fm
-from ..paths import REQUIRED_DIRS, STATE_FILES, CairnPaths
+from ..paths import MARKER_FILE, REQUIRED_DIRS, STATE_FILES, CairnPaths, has_marker
 from ..schemas import (
     FINDING_FILENAME,
     ActionItem,
@@ -31,6 +31,30 @@ def required_dirs_exist(paths: CairnPaths) -> list[Issue]:
         if not target.is_dir():
             issues.append(Issue(file=None, entity_id=None, message=f"missing directory: {rel}"))
     return issues
+
+
+def marker_present(paths: CairnPaths) -> list[Issue]:
+    """Warn if the cairn root is missing its ``.cairn`` marker file.
+
+    Pre-marker cairns (scaffolded before ADR-0006) are still discoverable
+    via the legacy fallback in ``is_cairn_root``, but the canonical marker
+    should be present. The fix is a single command, surfaced in the
+    warning message.
+    """
+    if has_marker(paths.root):
+        return []
+    return [
+        Issue(
+            file=None,
+            entity_id=None,
+            message=(
+                f"missing {MARKER_FILE} marker at cairn root. "
+                f"Backfill with: cd {paths.root} && cairn init "
+                f"{paths.root.name}  (idempotent — adds the marker, no other changes)"
+            ),
+            severity="warning",
+        )
+    ]
 
 
 def yaml_parses(paths: CairnPaths) -> list[Issue]:

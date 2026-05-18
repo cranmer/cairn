@@ -138,12 +138,17 @@ def test_us_p_01_initial_commit_attributed_to_user(cwd: Path):
     assert "scaffold cairn 'test-project'" in commits[0].message
 
 
-def test_us_p_01_refuses_overwrite_without_force(cwd: Path):
+def test_us_p_01_idempotent_on_existing_cairn(cwd: Path):
+    """ADR-0006: re-running ``cairn init`` on an already-cairn directory is a
+    safe no-op (it ensures the .cairn marker exists). The pre-ADR behavior
+    of erroring with 'refusing to overwrite' applies only to existing
+    directories that are NOT cairns; see test_discovery for that case.
+    """
     first = _invoke_init(cwd)
     assert first.exit_code == 0
     second = _invoke_init(cwd)
-    assert second.exit_code != 0
-    assert "refusing to overwrite" in second.output.lower() or "exists" in second.output.lower()
+    assert second.exit_code == 0, second.output
+    assert "already a cairn" in second.output.lower()
 
 
 def test_us_p_01_force_overwrites(cwd: Path):
