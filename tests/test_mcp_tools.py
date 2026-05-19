@@ -174,6 +174,21 @@ def test_set_project_md_rejects_unknown_author(cairn_root: Path):
         )
 
 
+def test_add_open_question_accepts_backdated_date(cairn_root: Path):
+    """Question writes can be backdated like decisions/findings/actions."""
+    out = _call(
+        "add_open_question",
+        {
+            "raised_by": "kyle",
+            "question": "Should we resample stratified?",
+            "date": "2025-09-10T09:00:00Z",
+        },
+    )
+    listed = _call("get_open_questions", {})
+    rec = next(q for q in listed if q["id"] == out["id"])
+    assert rec["date"].startswith("2025-09-10")
+
+
 def test_add_open_question_via_mcp(cairn_root: Path):
     out = _call(
         "add_open_question",

@@ -632,7 +632,11 @@ def build_server() -> FastMCP:
             "`resolve_open_question`, typically pointing at the decision "
             "that answered it.\n\n"
             "`related` is a list of canonical entity IDs; same constraint "
-            "as add_decision."
+            "as add_decision.\n\n"
+            "Pass `date` (ISO 8601) to backdate the question to when it "
+            "was actually first raised — useful when reconstructing "
+            "open questions from a project's TODO markers or historical "
+            "discussion. Defaults to now (UTC)."
         )
     )
     def add_open_question(
@@ -640,6 +644,7 @@ def build_server() -> FastMCP:
         question: str,
         cairn: str | None = None,
         related: list[str] | None = None,
+        date: str | None = None,
     ) -> dict[str, Any]:
         entry, paths = _resolve(cairn)
         related = related or []
@@ -647,13 +652,13 @@ def build_server() -> FastMCP:
         _validate_related(paths, related)
         state = load_state(paths)
         new_id = next_id("Q", state.question_ids())
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        when = _parse_date_param(date)
         try:
             new_q = OpenQuestion.model_validate(
                 {
                     "id": new_id,
                     "raised_by": raised_by,
-                    "date": now,
+                    "date": when,
                     "question": question,
                     "status": "open",
                     "related": related,
