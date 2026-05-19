@@ -187,4 +187,4 @@ cairn skills sync         # copies any newly-bundled skills into this cairn
 - `USER_STORIES.md` — testable user stories. The primary specification.
 - `docs/decisions/` — ADRs locking in design choices.
 - `docs/open-questions.md` — unresolved design tensions awaiting ADRs.
-- `docs/overview.html` — polished overview for sharing with colleagues.
+- `docs/index.html` — polished overview for sharing with colleagues; also the GitHub Pages landing page.

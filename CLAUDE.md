@@ -13,7 +13,7 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 - `ARCHITECTURE.md` — the design document. Read before making structural changes.
 - `USER_STORIES.md` — testable user stories. The primary specification. When implementing a feature, reference the relevant `US-NN` ID.
 - `figures/` — architecture diagrams referenced by ARCHITECTURE.md.
-- `docs/overview.html` — polished overview for sharing with colleagues.
+- `docs/index.html` — polished overview for sharing with colleagues; also the GitHub Pages landing page.
 - `docs/splash.html` — splash page.
 - `templates/default/` — the canonical cairn template that `cairn init` will scaffold from (to be built).
 - `src/cairn/` — the Python package source (to be built).

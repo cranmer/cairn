@@ -17,7 +17,7 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 **Two access modes — client and server.** Most of the time you're in **client mode**: a Claude Code session opened in your project's code repo (or, in future, a Zoom transcript / Slack thread), with the cairn as a transparent backend the agent calls into via MCP. This is the everyday case and the primary surface. **Server mode** — a session opened inside the cairn directory — is for occasional maintenance: deep debriefs, restructuring, planning meetings, spelunking through accumulated history. See [`docs/decisions/0008-client-server-and-exploration-rename.md`](docs/decisions/0008-client-server-and-exploration-rename.md).
 
-> **Status:** Phase 0–2 mostly shipped, Phase 3 (MCP server) shipped and being UX-tested. The Python package scaffolds new cairns, manages collaborators / decisions / findings / actions / open questions, validates state, exposes MCP tools, and supports retroactive bootstrap from existing project repos. See [QUICKSTART.md](QUICKSTART.md) for a five-minute tour. For the full vision, see [the design overview](docs/overview.html).
+> **Status:** Phase 0–2 mostly shipped, Phase 3 (MCP server) shipped and being UX-tested. The Python package scaffolds new cairns, manages collaborators / decisions / findings / actions / open questions, validates state, exposes MCP tools, and supports retroactive bootstrap from existing project repos. See [QUICKSTART.md](QUICKSTART.md) for a five-minute tour. For the full vision, see [the design overview](docs/index.html).
 
 ## What it enables
 
@@ -33,7 +33,7 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 |----------|---------|
 | [QUICKSTART.md](QUICKSTART.md) | Canonical install + first-cairn setup, written for a human reader. Two scenarios: start-from-scratch vs bootstrap-from-existing-repo |
 | [AGENT-BOOTSTRAP.md](AGENT-BOOTSTRAP.md) | Same setup, written for an agent (paste into Claude Code). Second-person tone, ★ confirmation marks, ends with a bootstrap-from-repo handoff for Scenario B |
-| [docs/overview.html](docs/overview.html) | Polished overview for sharing with colleagues |
+| [docs/index.html](docs/index.html) | Polished overview for sharing with colleagues (also the GitHub Pages landing page) |
 | [docs/splash.html](docs/splash.html) | Single-page introduction |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Design document — principles, components, build path |
 | [USER_STORIES.md](USER_STORIES.md) | Specifications for the Python package, agent skills, and MCP server |
@@ -53,7 +53,7 @@ cairn/
 ├── pyproject.toml                 # hatchling build, deps, ruff + pytest config
 ├── figures/                       # architecture diagrams (SVG)
 ├── docs/
-│   ├── overview.html              # polished overview
+│   ├── index.html                 # polished overview (GitHub Pages landing page)
 │   ├── splash.html                # single-page introduction
 │   └── decisions/                 # ADRs (YAML library, git library, etc.)
 ├── .github/workflows/             # CI: editable-install tests + wheel-install smoke
