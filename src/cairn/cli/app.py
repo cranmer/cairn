@@ -14,6 +14,7 @@ from .link_cmd import link
 from .mcp_cmd import mcp
 from .orient_cmd import orient
 from .register_cmd import register, registered, unregister
+from .skills_cmd import app as skills_app
 from .status_cmd import status
 from .validate_cmd import validate
 
@@ -37,6 +38,7 @@ app.command(name="register")(register)
 app.command(name="unregister")(unregister)
 app.command(name="registered")(registered)
 app.command(name="mcp")(mcp)
+app.add_typer(skills_app, name="skills")
 
 
 @app.command(name="version")

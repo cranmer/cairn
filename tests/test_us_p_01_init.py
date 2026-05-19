@@ -70,8 +70,11 @@ def test_us_p_01_bundles_skill_files(cwd: Path):
         "start-exploration",
         "complete-action",
         "log-finding",
+        "log-decision",
+        "log-action",
         "resolve-exploration",
         "debrief",
+        "bootstrap_from_repo",
     }
     present = {p.name for p in skills_dir.iterdir() if p.is_dir()}
     assert expected <= present, f"missing skills: {expected - present}"

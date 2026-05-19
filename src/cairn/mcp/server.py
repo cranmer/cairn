@@ -303,7 +303,14 @@ def build_server() -> FastMCP:
             "'Q-007', 'A-014']) — NOT finding paths or slugs and NOT "
             "collaborator ids. Each must resolve in the cairn or the call "
             "fails. (Findings can't yet appear in `related` — see the "
-            "recommendations doc.)"
+            "recommendations doc.)\n\n"
+            "**For retroactive population from history**: pass `date` (ISO "
+            "8601, e.g. '2025-11-15T14:30:00Z') to backdate the decision to "
+            "when it was actually made; pass `source_commits` (list of "
+            "SHAs) and `source_prs` (list of PR numbers / URLs) to record "
+            "the git artifacts the decision came from as structured fields "
+            "rather than burying them in `context`. All three are optional "
+            "and default to now / empty."
         )
     )
     def add_decision(
@@ -379,7 +386,13 @@ def build_server() -> FastMCP:
             "Mirrors `cairn finding add`.\n\n"
             "`related` is a list of canonical entity IDs (e.g., ['D-003', "
             "'Q-007', 'G-002']) — same constraint as add_decision. Each "
-            "must resolve in the cairn."
+            "must resolve in the cairn.\n\n"
+            "**For retroactive population from history**: pass `date` (ISO "
+            "8601, e.g. '2025-11-15T14:30:00Z') to backdate to when the "
+            "finding was actually observed; the finding's filename uses "
+            "this date too. Pass `source_commits` and `source_prs` to "
+            "record git provenance as structured fields. All three are "
+            "optional and default to now / empty."
         )
     )
     def add_finding(
@@ -463,7 +476,11 @@ def build_server() -> FastMCP:
             "(commitments with rationale) and findings (observed facts). "
             "Complete with `complete_action`. Mirrors `cairn action add`.\n\n"
             "`related` is a list of canonical entity IDs; same constraint "
-            "as add_decision."
+            "as add_decision.\n\n"
+            "Pass `date` (ISO 8601) to backdate the action's creation "
+            "timestamp — useful when reconstructing forgotten assignments "
+            "from past conversations. `due_date` is a calendar date "
+            "(YYYY-MM-DD), distinct from `date`."
         )
     )
     def add_action(
@@ -472,7 +489,7 @@ def build_server() -> FastMCP:
         cairn: str | None = None,
         due_date: str | None = None,
         related: list[str] | None = None,
-        created: str | None = None,
+        date: str | None = None,
     ) -> dict[str, Any]:
         entry, paths = _resolve(cairn)
         related = related or []
@@ -481,7 +498,7 @@ def build_server() -> FastMCP:
 
         state = load_state(paths)
         new_id = next_id("A", state.action_ids())
-        when = _parse_date_param(created)
+        when = _parse_date_param(date)
         try:
             new_action = ActionItem.model_validate(
                 {
