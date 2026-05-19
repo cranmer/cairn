@@ -23,7 +23,7 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 - **Persistent shared memory** across meetings, decisions, findings, and discussions.
 - **Async contribution and recall** — collaborators (and their agents) can ask what was decided, what was discussed, and what's outstanding without sitting through the original conversation.
-- **Parallel exploration** — your project repo's git branches stay yours; the cairn optionally tracks the *rationale* of alternative inquiries (decisions, methodology choices, branching investigations) via tracked explorations when the comparison itself is the artifact worth preserving.
+- **Parallel exploration** — your project repo's git branches stay yours; the cairn optionally tracks the *rationale* of alternative inquiries (design alternatives, methodology choices, comparative analyses) via tracked explorations when the comparison itself is the artifact worth preserving.
 - **Uniform interface for human and AI collaborators** — same workflows, attributed identities.
 - **Reproducible artifact export** into emerging community standards (ASTRA, ARA, RO-Crate).
 
