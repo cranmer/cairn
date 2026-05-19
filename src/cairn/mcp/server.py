@@ -151,53 +151,44 @@ def _slugify(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+SERVER_INSTRUCTIONS = """\
+Cairn maintains a research group's shared project memory that lives \
+alongside the code repos, not inside any one of them, and is designed for \
+a world where AI agents contribute alongside humans. It provides \
+persistent shared memory of decisions, findings, open questions, and \
+action items, plus richer artifacts like meeting notes, explorations, and \
+registered collaborators. It supports asynchronous contribution and recall \
+— collaborators (and their agents) can ask what was decided, what was \
+discussed, and what's outstanding without sitting through the original \
+conversation.
+
+The user experience goal is that using cairn does not significantly \
+redirect how collaborators work. They keep using their normal tools — AI \
+coding agents, git, Zoom, Slack, email, paper, conversation — at their \
+normal rhythm. Your role as an agent is to capture the work being done \
+and act as a facilitator: surface prior context (decisions, findings, \
+open questions) when it's relevant to what the user is doing now.
+
+Like a thoughtful note-taker at a meeting, an agent may occasionally ask \
+focused clarifying questions in service of accurate capture: "Is this the \
+decision wording?", "Should I file this as an action — assign to whom?", \
+"Looks like Q-005 is resolved; close it?" These are the questions a good \
+collaborator asks. They are not the questions a tool asks: users do not \
+ask the agent "please run cairn decision add --text…", do not propose \
+new rituals or interrupt the user's current flow, and do not \
+micro-confirm every capture inline — debrief at the end of the session \
+instead.
+
+If the project does not already have an associated cairn — or has one \
+that has not yet been seeded from the project's existing git history, \
+documentation, and PRs — follow the `bootstrap_from_repo` workflow before \
+live capture begins.
+"""
+
+
 def build_server() -> FastMCP:
     """Construct the FastMCP server and register the Tier-1 tools."""
-    mcp = FastMCP(
-        name="cairn",
-        instructions=(
-            "Cairn maintains a research group's shared project memory that "
-            "lives alongside the code repos, not inside any one of them, and "
-            "is designed for a world where AI agents contribute alongside "
-            "humans. It provides persistent shared memory of decisions, "
-            "findings, open questions, and action items, plus richer "
-            "artifacts like meeting notes, explorations, and registered "
-            "collaborators. It supports asynchronous contribution and recall "
-            "— collaborators (and their agents) can ask what was decided, "
-            "what was discussed, and what's outstanding without sitting "
-            "through the original conversation.\n\n"
-            "The user experience goal is that using cairn does not "
-            "significantly redirect how collaborators work. They keep using "
-            "their normal tools — AI coding agents, git, Zoom, Slack, email, "
-            "paper, conversation — at their normal rhythm. Your role as an "
-            "agent is to capture the work being done and act as a "
-            "facilitator: surface prior context (decisions, findings, open "
-            "questions) when it's relevant to what the user is doing now.\n\n"
-            "Like a thoughtful note-taker at a meeting, you may occasionally "
-            "ask focused clarifying questions in service of accurate "
-            "capture: \"Is this the decision wording?\", \"Should I file "
-            "this as an action — assign to whom?\", \"Looks like Q-005 is "
-            "resolved; close it?\" These are the questions a good "
-            "collaborator asks. They are not the questions a tool asks: do "
-            "not ask the user to run `cairn decision add --text…` (you have "
-            "the MCP write tools — use them), do not propose new rituals or "
-            "interrupt the user's current flow, and do not micro-confirm "
-            "every capture inline — debrief at the end of the session "
-            "instead.\n\n"
-            "If the project does not already have an associated cairn — or "
-            "has one that has not yet been seeded from the project's "
-            "existing git history, documentation, and PRs — follow the "
-            "`bootstrap-from-repo` skill (call `get_skill` to read the full "
-            "procedure) before live capture begins. The `status` tool's "
-            "`suggested_next` field surfaces this hint automatically when "
-            "the cairn is empty.\n\n"
-            "Operational: every tool takes a `cairn` parameter naming the "
-            "target. When exactly one cairn is registered, the parameter "
-            "defaults to it. Use `list_skills` to discover bundled "
-            "procedural workflows; the host CLI's `cairn registered` lists "
-            "the cairns this server serves."
-        ),
-    )
+    mcp = FastMCP(name="cairn", instructions=SERVER_INSTRUCTIONS)
 
     # ---- Identity / status ------------------------------------------------
 
@@ -233,7 +224,7 @@ def build_server() -> FastMCP:
         import json
         result = json.loads(render_json(snap))
         # When the cairn is essentially empty, hint that the
-        # bootstrap-from-repo skill may apply.
+        # bootstrap_from_repo skill may apply.
         is_empty = (
             result.get("decision_count", 0) == 0
             and result.get("open_question_count", 0) == 0
@@ -243,7 +234,7 @@ def build_server() -> FastMCP:
         result["suggested_next"] = (
             "This cairn has no decisions, findings, questions, or actions yet. "
             "If it sits alongside an existing code repo, consider running the "
-            "`bootstrap-from-repo` skill (see `list_skills` / `get_skill`) "
+            "`bootstrap_from_repo` skill (see `list_skills` / `get_skill`) "
             "before live capture to seed the cairn from the repo's history."
             if is_empty else None
         )
@@ -1182,7 +1173,7 @@ def build_server() -> FastMCP:
             "List the procedural skills shipped in this cairn (under "
             "`skills/<name>/SKILL.md`). Each skill is a markdown procedure "
             "the agent should follow when its trigger fires — for example, "
-            "`bootstrap-from-repo` (seed a cairn from an existing code "
+            "`bootstrap_from_repo` (seed a cairn from an existing code "
             "repo), `orient` (read PROJECT.md + status at session start), "
             "`debrief` (end-of-session batch capture)."
         )

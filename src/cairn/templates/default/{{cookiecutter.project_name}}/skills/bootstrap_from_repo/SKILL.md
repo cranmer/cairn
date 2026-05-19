@@ -1,5 +1,5 @@
 ---
-name: bootstrap-from-repo
+name: bootstrap_from_repo
 description: Use when the user wants to seed a fresh cairn from an existing code repository's accumulated history — README, docs, git log, PR descriptions, CHANGELOG. Walks the repo, drafts a single batched proposal of inferred collaborators / decisions / findings / open questions / actions, gets one consent round, then writes each item to the cairn with correctly backdated dates and structured PR / commit provenance.
 ---
 

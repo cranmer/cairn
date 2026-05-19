@@ -389,7 +389,7 @@ def test_list_skills_returns_bundled_skills(cairn_root: Path):
     names = {s["name"] for s in out}
     # Bundled skills shipped with the template
     assert "orient" in names
-    assert "bootstrap-from-repo" in names
+    assert "bootstrap_from_repo" in names
     assert "log-finding" in names
     # Each has a description
     for s in out:
@@ -397,8 +397,8 @@ def test_list_skills_returns_bundled_skills(cairn_root: Path):
 
 
 def test_get_skill_returns_full_content(cairn_root: Path):
-    out = _call("get_skill", {"name": "bootstrap-from-repo"})
-    assert out["name"] == "bootstrap-from-repo"
+    out = _call("get_skill", {"name": "bootstrap_from_repo"})
+    assert out["name"] == "bootstrap_from_repo"
     assert "# Bootstrap a cairn from a project repository" in out["content"]
 
 
@@ -419,9 +419,7 @@ def test_server_instructions_describe_what_cairn_is(cairn_root: Path):
     assert "facilitator" in instructions.lower()
     assert "note-taker" in instructions.lower()
     # Bootstrap pointer
-    assert "bootstrap-from-repo" in instructions
-    # Operational tail still present
-    assert "`cairn` parameter" in instructions
+    assert "bootstrap_from_repo" in instructions
 
 
 def test_get_action_items_filters_by_assignee(cairn_root: Path):
