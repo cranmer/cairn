@@ -13,9 +13,11 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 **Augmentation, not replacement.** Cairn does not ask collaborators to change how they work. You keep using your normal tools — git, Zoom, Slack, email, conversation — at your normal rhythm. An agent listens in those native channels and writes structured notes into the cairn as a side effect, so other collaborators (and future agents, and you three months later) can catch up on the structured view without having been in the room. The principle is captured in [`docs/decisions/0007-augmentation-not-replacement.md`](docs/decisions/0007-augmentation-not-replacement.md) and pairs with the existing substrate-as-specification commitment: the former says *where work happens* (in your native channels); the latter says *where state lives* (files in git).
 
-**Two access modes — client and server.** Most of the time you're in **client mode**: a Claude Code session opened in your project's code repo (or, in future, a Zoom transcript / Slack thread), with the cairn as a transparent backend the agent calls into. This is the everyday case and the primary surface. **Server mode** — a session opened inside the cairn directory — is for occasional maintenance: deep debriefs, restructuring, planning meetings, spelunking through accumulated history. The cairn's SessionStart hook fires only in server mode (auto-orienting on project state), but client mode is where ongoing work happens. Cross-repo discovery that makes client mode seamless (`cairn link` + a project-repo `cairn.toml` pointer file) is the next milestone — see [`docs/decisions/0006-cairn-discovery-and-pairing.md`](docs/decisions/0006-cairn-discovery-and-pairing.md) and [`docs/decisions/0008-client-server-and-exploration-rename.md`](docs/decisions/0008-client-server-and-exploration-rename.md).
+**MCP-first.** The primary integration is an MCP server (`cairn mcp`) that exposes ~28 read and write tools to any Claude Code session. One server serves all of a user's cairns (per [ADR-0010](docs/decisions/0010-single-mcp-server-multiple-cairns.md)); each MCP tool accepts a `cairn` parameter naming the target, defaulting to the only registered one when there's just one. Wire it up once with `claude mcp add cairn -- cairn mcp` and every session anywhere has access to the cairn without `cd` or per-session bootstrap.
 
-> **Status:** Phase 0/1 implemented. The Python package scaffolds new cairns, manages collaborators and decisions, validates state, and reports project status. See [QUICKSTART.md](QUICKSTART.md) for a five-minute tour. For the full vision, see [the design overview](docs/overview.html).
+**Two access modes — client and server.** Most of the time you're in **client mode**: a Claude Code session opened in your project's code repo (or, in future, a Zoom transcript / Slack thread), with the cairn as a transparent backend the agent calls into via MCP. This is the everyday case and the primary surface. **Server mode** — a session opened inside the cairn directory — is for occasional maintenance: deep debriefs, restructuring, planning meetings, spelunking through accumulated history. See [`docs/decisions/0008-client-server-and-exploration-rename.md`](docs/decisions/0008-client-server-and-exploration-rename.md).
+
+> **Status:** Phase 0–2 mostly shipped, Phase 3 (MCP server) shipped and being UX-tested. The Python package scaffolds new cairns, manages collaborators / decisions / findings / actions / open questions, validates state, exposes MCP tools, and supports retroactive bootstrap from existing project repos. See [QUICKSTART.md](QUICKSTART.md) for a five-minute tour. For the full vision, see [the design overview](docs/overview.html).
 
 ## What it enables
 
@@ -29,14 +31,15 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 | Document | Purpose |
 |----------|---------|
-| [QUICKSTART.md](QUICKSTART.md) | Five-minute install + first cairn (human-driven) |
-| [AGENT-BOOTSTRAP.md](AGENT-BOOTSTRAP.md) | Paste-into-Claude-Code instructions for agent-driven setup |
+| [QUICKSTART.md](QUICKSTART.md) | Canonical install + first-cairn setup, written for a human reader. Two scenarios: start-from-scratch vs bootstrap-from-existing-repo |
+| [AGENT-BOOTSTRAP.md](AGENT-BOOTSTRAP.md) | Same setup, written for an agent (paste into Claude Code). Second-person tone, ★ confirmation marks, ends with a bootstrap-from-repo handoff for Scenario B |
 | [docs/overview.html](docs/overview.html) | Polished overview for sharing with colleagues |
 | [docs/splash.html](docs/splash.html) | Single-page introduction |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Design document — principles, components, build path |
 | [USER_STORIES.md](USER_STORIES.md) | Specifications for the Python package, agent skills, and MCP server |
 | [CLAUDE.md](CLAUDE.md) | Development guide for Claude Code sessions |
 | [docs/decisions/](docs/decisions/) | Architectural decision records (ADRs) |
+| [docs/open-questions.md](docs/open-questions.md) | Unresolved design tensions awaiting ADRs |
 
 ## Repository contents
 
@@ -74,46 +77,41 @@ cairn/
 
 ## Roadmap
 
-- [x] Design and architecture documented
-- [x] User stories defined
-- [x] **Phase 0 — Foundation** *(done)*
-  - Canonical cairn template (`templates/default/`)
-  - State schemas in Pydantic v2 (`src/cairn/schemas/`)
-  - `cairn init` (US-P-01, US-P-02)
-  - Basic state operations: `cairn collaborator add`, `cairn decision add`, `cairn validate`, `cairn status` (US-P-03 through US-P-06)
-- [x] **Phase 1 — Agent skills + supporting commands** *(done)*
-  - Bundled `SKILL.md` files in `templates/default/skills/`: `orient`, `search-history`, `start-exploration`, `resolve-exploration`, `complete-action`, `log-finding`
-  - US-A-01: Orient at session start (reads `PROJECT.md` + `state/collaborators.yaml`, runs `cairn status`)
-  - US-A-03: Create an exploration branch (`cairn exploration start`)
-  - US-A-04: Mark an action item complete (`cairn action add` + `cairn action complete`)
-  - US-A-05: Search prior discussions (skill — local file scan)
-  - US-A-09: Close an exploration branch (`cairn exploration close`, merged or abandoned)
-- [ ] **Phase 2 — Python package extensions** *(in progress)*
-  - [x] Log a finding mid-session — `cairn finding add` + `log-finding` skill (US-A-02)
-  - [ ] Meeting import (US-P-07)
-  - [ ] Artifact export — ASTRA / ARA / RO-Crate (US-P-08)
-  - [ ] Agenda draft (US-P-09)
-- [ ] **Phase 3** — MCP server alongside the repo
-- [ ] **Phase 4** — Meeting capture (Whisper + pyannote diarization)
-- [ ] **Phase 5** — AI collaborator runtime (literature monitor, etc.)
-- [ ] **Phase 6** — Voice-mode meeting participant *(long-term)*
+- [x] **Phase 0 — Foundation** *(done)*: canonical template, Pydantic v2 schemas, `cairn init`, basic state-write CLIs.
+- [x] **Phase 1 — Agent skills** *(done)*: bundled SKILL.md files (`orient`, `log-finding`, `log-decision`, `log-action`, `start-exploration`, `resolve-exploration`, `complete-action`, `search-history`, `debrief`, `bootstrap_from_repo`).
+- [x] **Phase 3 — MCP server** *(shipped, UX-testing)*: `cairn mcp` stdio server, single-server-many-cairns registry (ADR-0010), ~28 read/write tools, `cairn.toml` project-repo pairing, semantic PROJECT.md tools, backdating + structured PR / commit provenance, skill discoverability.
+- [ ] **Phase 2 — Python package extensions** *(in progress)*: artifact export (ASTRA / ARA / RO-Crate, US-P-08), meeting import (US-P-07), agenda draft (US-P-09).
+- [ ] **ADR-0011** *(drafted)*: multi-author attribution. Plural authorship on the four writable entity types. Awaiting review before implementation.
+- [ ] **Phase 4** — Meeting capture (Whisper + pyannote diarization).
+- [ ] **Phase 5** — AI collaborator runtime (literature monitor, etc.).
+- [ ] **Phase 6** — Voice-mode meeting participant *(long-term)*.
 
 ## Available commands
 
-Once installed (`pip install -e ".[dev]"`):
+Once installed (`pipx install 'cairn[mcp] @ git+https://github.com/cranmer/cairn'`):
 
+**MCP / registry:**
 | Command | Purpose |
 |---------|---------|
-| `cairn init <name>` | Scaffold a new cairn from the bundled template or `--template <path-or-url>` |
-| `cairn collaborator add` | Register a human or AI collaborator (flags or `--yaml` bulk) |
-| `cairn decision add` | Record a decision with auto ID, UTC timestamp, and cross-reference validation |
-| `cairn action add` | Add an action item with assignee, optional due date, and related-ID validation |
-| `cairn action complete <id>` | Mark an action complete; records completion time and completer (keeps history) |
-| `cairn exploration start "<desc>"` | Create `<user-id>/<kebab>` branch + manifest, update `explorations/README.md` |
-| `cairn exploration close <name>` | Record a branch as merged or abandoned; updates manifest + explorations/README.md |
-| `cairn finding add` | Write `knowledge/findings/YYYY-MM-DD-<slug>.md` with YAML frontmatter and commit it |
-| `cairn validate` | Check schemas, cross-references, and meeting filenames; non-zero exit on errors |
-| `cairn status` | Compact summary of open questions, actions, branches, recent decisions; supports `--json` and `--branch` |
+| `cairn mcp` | Run the MCP server over stdio (configured via `claude mcp add cairn -- cairn mcp`) |
+| `cairn register <name> <path>` | Add a cairn to the user-level MCP registry. `--init` scaffolds it if missing |
+| `cairn unregister <name>` | Remove a cairn from the registry |
+| `cairn registered` | List currently registered cairns |
+| `cairn link [<project-repo>]` | Write a `cairn.toml` at a project repo root pairing it with a cairn by name |
+| `cairn skills sync` | Backfill bundled skills into an existing cairn (after a cairn package upgrade) |
+
+**Cairn-state commands (also available as MCP tools):**
+| Command | Purpose |
+|---------|---------|
+| `cairn init <name>` | Scaffold a new cairn from the bundled template |
+| `cairn collaborator add` | Register a human, AI, group, or unknown-type collaborator |
+| `cairn decision add` | Record a decision with auto ID and structured PR / commit provenance |
+| `cairn action add` / `complete` | Add or complete action items |
+| `cairn exploration start` / `close` | Open or close a tracked exploration (alternative line of inquiry) |
+| `cairn finding add` | Write a finding with YAML frontmatter, optionally backdated |
+| `cairn validate` | Check schemas, cross-references, and meeting filenames |
+| `cairn status` | Compact project-state summary; supports `--json` and `--branch` |
+| `cairn orient` | Print PROJECT.md plus the status block in one go |
 | `cairn version` | Print the package version |
 
 ## Development

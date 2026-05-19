@@ -1,38 +1,29 @@
-# Bootstrap a new cairn — instructions for a Claude Code session
+# Bootstrap a cairn — instructions for an agent
 
-**You** (Claude Code, the agent reading this) are being asked to set up a new *cairn* — a git-native shared memory for a research project — on the user's machine. The user has pasted this file to you. Follow these instructions; pause for confirmation at the **★** marks before taking the listed action. Do not skip ahead.
+**You** (Claude Code, the agent reading this) are being asked to set up a new *cairn* — a git-native shared memory for a research project — on the user's machine. The user has pasted this file to you. Follow these instructions; **pause for confirmation at the ★ marks** before taking the listed action. Do not skip ahead.
 
-If the user has already created a cairn and just wants you to orient inside it, this file is the wrong one — point them at `QUICKSTART.md` and stop.
+If the user has already created a cairn and just wants you to orient inside it, this file is the wrong one — point them at the cairn's `TRACKING.md` (inside the cairn) and ask what they'd like to do next.
 
-## Two access modes — know which one you're setting up
+This is the agent-driven companion to `QUICKSTART.md` (the human-driven version). The two flows produce the same end state. Read this file end-to-end before starting; the steps are short.
 
-A cairn is a *separate* git repo from the project's working code/data/paper repos (see README.md's "A cairn is not a project's code repo" section). That means a user can have an agent session open in one of two places, and **the mode is set the moment the user launched Claude Code — it is not changed by you `cd`ing during bootstrap**:
+## Capture this early — you'll need it
 
-- **Mode A** — session opened inside the cairn directory. The cairn's SessionStart hook fires once and runs `cairn status`, so you get a project-state context dump for free. The bundled SKILL.md files are *procedural prose* the agent reads on demand — they are not registered Claude Code skills and won't appear in the user's `/skills` list until ADR-0006 Stage 3 (`cairn skills install`) ships. Same applies to `TRACKING.md`: it's a file the agent reads, not a posture the harness loads.
-- **Mode B** — session opened anywhere else, typically inside a project's code repo. The SessionStart hook does not fire; no `cairn status` runs automatically. You can still drive the cairn by `cd`ing into it or using absolute paths, and you can still read the SKILL.md procedures from `<cairn>/skills/<name>/SKILL.md` on demand. Cross-repo discovery so a session inside a project repo finds its paired cairn without ceremony is on the roadmap (ADR-0006 Stage 2 — `cairn link` + a project-repo `cairn.toml` pointer file) but **not yet in v0**.
+Before you `cd` anywhere or run anything substantive, **capture two facts**:
 
-This bootstrap doc creates a cairn. **It does not change the current session's mode** — Mode A vs Mode B is set by where the user launched Claude Code, not by where you `cd`. At the end, report mode honestly; don't claim Mode A just because your *current* cwd is the cairn directory. The "When you're done" section spells this out.
-
-If the user mentions they already have a project repo with code in it, the cairn you scaffold lives **alongside** that repo (e.g., `~/projects/foo-cairn/` next to `~/projects/foo/`), never inside it. You do not modify the existing project repo during bootstrap.
-
-**Capture initial cwd at session start** (e.g., the first `pwd` you run, before any `cd`) — you will need it at the end to determine which mode this session was opened in.
-
-## Session affordances you should use
-
-Two things about your Claude Code session that matter for this bootstrap:
-
-- **Working directory persists** across your Bash tool calls. One `cd <project-path>` after the cairn is created is enough — every subsequent command runs in that directory unless you `cd` away. The user shouldn't have to see repeated `cd` lines.
-- **Shell state does NOT persist** between Bash calls. Anything you `source`, `export`, or `conda activate` is gone by the next tool call. This is why we strongly prefer pipx in Step 2: it puts `cairn` on the user's normal PATH so you don't have to fight activation. For the env-based fallback path, see the `.claude/settings.local.json` trick in Step 6.5 — it makes PATH changes durable across your Bash calls.
+- `pwd` — your starting working directory. Mode reporting at the end depends on this.
+- Whether the user's project repo (if any) already exists on disk. Note its path.
 
 ## What you're going to do
 
-1. Verify the user has Python ≥ 3.10 and `git` on PATH.
-2. Install the `cairn` package (from GitHub, since Cairn is not yet on PyPI).
+1. Verify Python ≥ 3.10 and `git` on PATH.
+2. Install `cairn` with the MCP extra via pipx.
 3. Confirm or set the user's git identity.
-4. Scaffold a new cairn at a location the user agrees to.
-5. Register the user as the first collaborator.
-6. Show the user what they have and how to use the bundled skills.
-7. (If env-based install) write `.claude/settings.local.json` so this session lives *inside* the cairn instead of fighting activation.
+4. Decide: **start from scratch** (no source repo to bootstrap from) or **bootstrap from an existing repo** (most common — months/years of history to seed from).
+5. Scaffold and register the cairn.
+6. Register yourself (the user) as the first collaborator.
+7. Wire the MCP server into Claude Code (one-time, ever).
+8. Pair the project repo with the cairn (optional but recommended).
+9. Hand off to the user — and, if bootstrapping, drive the bootstrap workflow yourself.
 
 ## Step 1 — Verify prerequisites
 
@@ -43,47 +34,35 @@ python --version    # need >= 3.10
 git --version       # any recent version
 ```
 
-If either is missing or below the required version, **stop** and tell the user what to install before continuing. Do not try to install Python or git for them.
+If either is missing or below the required version, **stop** and tell the user what to install. Do not install Python or git for them.
 
 ## Step 2 — Install Cairn ★
 
-> **Important UX note for you (the agent).** Your shell tool starts a fresh process for each command — `conda activate` or `source venv/bin/activate` in one tool call does NOT persist to the next. If you install into a conda env or venv, every subsequent `cairn` invocation will need either re-activation or an absolute path (`~/.venvs/cairn/bin/cairn …`), which is clunky for the user. **Prefer `pipx` unless the user has a strong reason otherwise** — it installs Cairn into its own isolated env and exposes the `cairn` entry point on the user's normal PATH, so subsequent commands Just Work without activation.
+> **UX note for you (the agent).** Your shell tool starts a fresh process for each command — `conda activate` or `source venv/bin/activate` in one tool call does NOT persist to the next. **Use pipx.** It puts `cairn` on the user's PATH everywhere with no activation friction.
 
-Offer the user these options, in this order:
-
-1. **pipx** *(recommended).* One install, `cairn` on PATH everywhere afterward, no activation needed for any subsequent step.
-2. **A user-supplied venv / conda / pixi / uv environment** they already have active. Works, but every subsequent `cairn` command in this session will need the env's full binary path (e.g., `~/.venvs/cairn/bin/cairn …`) because your shell tool resets between calls.
-3. **`pip install --user`** as a fallback. Installs to `~/.local/bin/cairn` (assuming that's on PATH).
-
-Install commands:
-
-```sh
-# Option 1 — pipx (recommended)
-pipx install git+https://github.com/cranmer/cairn
-
-# Option 2 — existing env (caller activates it themselves first)
-pip install git+https://github.com/cranmer/cairn
-
-# Option 3 — user-site
-pip install --user git+https://github.com/cranmer/cairn
-```
-
-If `pipx` itself isn't installed, offer to install it for the user:
+If `pipx` isn't already installed:
 
 ```sh
 python -m pip install --user pipx && python -m pipx ensurepath
-# user may need to restart their shell after ensurepath, or `source ~/.bashrc` / `~/.zshrc`
+# (the user may need to restart their shell or `source ~/.bashrc` after ensurepath)
 ```
 
-Verify the install worked:
+Then install cairn with the MCP extra:
 
 ```sh
-which cairn      # capture this path — if `cairn` ever stops resolving later, use this absolute path
-cairn --help     # should list init, collaborator, decision, action, branch, finding, validate, status, version
-cairn version
+pipx install 'cairn[mcp] @ git+https://github.com/cranmer/cairn'
 ```
 
-If `cairn --help` doesn't work and the user picked option 2 (env-based install), use the full path (`<env>/bin/cairn`) for every subsequent step in this doc and tell the user explicitly: *"Your shell will need `conda activate cairn` (or equivalent) before `cairn` works in a new terminal."* If they want to avoid that, suggest reinstalling via pipx.
+(Cairn is **not** on PyPI. `pip install cairn` would pull an unrelated package — do not use it.)
+
+Verify:
+
+```sh
+cairn --help        # should list init, register, link, mcp, decision, finding, ...
+cairn version       # something like 0.0.1.devNN+g<sha>
+```
+
+If `cairn --help` doesn't resolve after install, the user's `~/.local/bin` probably isn't on PATH. Tell them; offer to use `~/.local/bin/cairn` as an absolute path for the rest of this session.
 
 ## Step 3 — Confirm git identity ★
 
@@ -94,53 +73,60 @@ git config --global user.name
 git config --global user.email
 ```
 
-If both return values: echo them back to the user and ask if they should be used as the cairn's identity. (`cairn init` will refuse to commit without them.)
-
-If either is missing: ask the user for the value, then set it:
+If both return values: echo them back to the user and ask if they should be used as the cairn's identity. If they say yes, proceed. If no, ask for the right values and set them:
 
 ```sh
 git config --global user.name  "Their Name"
 git config --global user.email "they@example.com"
 ```
 
-Do not invent values. Cairn's substrate-as-truth principle dislikes synthesized identities — the commit author must be the real human.
+If either is missing: ask the user for the value and set it. **Do not invent values.** The commit author must be the real human — cairn's substrate-as-truth principle requires it.
 
-## Step 4 — Choose where the cairn will live ★
+## Step 4 — Choose scenario ★
 
 Ask the user:
 
-- **Project name** (short, kebab-case if possible — this becomes the directory name and a few labels inside `PROJECT.md`).
-- **Parent directory** (defaults to `~/projects/` or wherever they keep their work).
+> *"Two ways to start: (A) **start from scratch** — a brand-new cairn with no existing project repo to seed from, or (B) **bootstrap from an existing repo** — you have a project repo with months or years of history (README, ADRs, PR descriptions, contributor list) and want the cairn to pick that up as backdated decisions and findings before live capture begins. Which fits?"*
 
-Echo both values back, then ask "shall I proceed?" before running:
+Also collect:
+
+- **Project name** (short, kebab-case if possible — becomes the cairn directory name and the MCP registry handle).
+- **Parent directory** — where the cairn will live (defaults to `~/projects/` or wherever they keep work).
+- **For Scenario B**: the absolute path of the project repo to bootstrap from.
+
+Echo all collected values back, then proceed.
+
+## Step 5 — Scaffold + register the cairn ★
 
 ```sh
 cd <parent-directory>
-cairn init <project-name> --no-input
-cd <project-name>
+cairn register <project-name> ./<project-name>-cairn --init
 ```
+
+`cairn register --init` does `cairn init` followed by registry registration in one step. The cairn ends up at `<parent-directory>/<project-name>-cairn/`, alongside any project repos, never inside them.
 
 Verify:
 
 ```sh
-ls                  # README.md, PROJECT.md, state/, knowledge/, skills/, explorations/
-git log --oneline   # one commit "Initial commit: scaffold cairn '<name>'"
-cat state/collaborators.yaml   # should be "[]"
+cd <project-name>-cairn
+ls -la            # at minimum: PROJECT.md, README.md, TRACKING.md, .gitignore,
+                  # .cairn, .claude/, state/, knowledge/, skills/, explorations/
+git log --oneline # one commit "Initial commit: scaffold cairn '<name>'"
+cairn registered  # confirm <project-name> appears
 ```
 
-## Step 5 — Register the user as the first collaborator ★
+If the scaffold output mentions disabling commit signing for this cairn (because `commit.gpgsign=true` globally but no `user.signingkey` is configured), that's expected and benign — it just makes future manual `git commit` calls in the cairn work without signing failures.
 
-Ask the user:
+## Step 6 — Register the user as the first collaborator ★
 
-- **Collaborator id** — short, kebab-case, lowercase (e.g., `kyle`, `maria-s`). This is the canonical handle used in attributions and cross-references throughout the cairn.
-- **Role** — what they actually *do* on this project. Bias toward activity-based descriptions ("designing generative models", "running ablation experiments", "maintaining the data pipeline", "writing the introduction"), not titles ("PI", "postdoc", "professor"). Cairn intentionally avoids prescribing a hierarchy; whatever description fits the user's actual contribution is right. If they offer a title, that's also fine — accept it.
+Ask:
+
+- **Collaborator id** — short, kebab-case, lowercase (e.g., `kyle`, `maria-s`). Used in attributions and cross-references throughout the cairn.
+- **Role** — what they actually *do* on this project. Bias toward activity-based descriptions ("designing generative models", "running ablation experiments", "writing the introduction") over titles ("PI", "postdoc", "professor"). If they offer a title, accept it.
+- **Email** — pre-fill from `git config --get user.email` and confirm. The `orient` skill matches the current git user against collaborator emails; without this every future session has to ask.
 - Optional: GitHub handle, expertise tags, current focus.
 
-You can pre-fill the user's **email** from their git config (`git config --get user.email`) without asking — the email is what the `orient` skill uses to match the current git user against the collaborator list. Without it, every future session has to ask "which collaborator id is yours?" Confirm the email with the user before passing it, but defaulting from `git config` is fine.
-
-When offering suggestions in any interactive prompt, suggest activity-based phrasings, not titles. Do not present role as a choice between fixed academic titles.
-
-Then run:
+Then:
 
 ```sh
 cairn collaborator add \
@@ -156,112 +142,97 @@ cairn collaborator add \
 Verify:
 
 ```sh
-cat state/collaborators.yaml
-git log --oneline   # the new commit "Add collaborator '<id>'"
+cat state/collaborators.yaml   # the new entry should be there
+git log --oneline               # "Add collaborator '<id>'"
 ```
 
-## Step 6 — Show the user what they have
-
-Tell the user that the cairn now includes seven bundled `SKILL.md` files under `skills/`, plus a top-level `TRACKING.md` guide.
-
-> **What "ships seven skills" means today.** The SKILL.md files are *procedural prose* — what each skill is, when to trigger it, which `cairn` CLI command to run. They are **not** registered Claude Code skills: they won't appear in the user's `/skills` list and the Skill tool can't invoke them by name. You (the agent) read the relevant `SKILL.md` when its trigger fires and execute the steps manually. Cross-repo installation that makes them real `/orient`, `/log-finding`, etc. slash commands everywhere is on the roadmap (ADR-0006 Stage 3, `cairn skills install`) but not yet in v0. Until then, the procedures still work — you just invoke them yourself.
-
-The procedures:
-
-- **TRACKING.md** (at the cairn root) — the *posture* guide. Cairn's whole point is that the user shouldn't have to invoke CLI commands by hand; you (the agent) listen for capture-worthy signals in conversation and record them transparently. Read this once at session start.
-- **orient** — what you should read at session start to be useful without burning context.
-- **search-history** — local-file scan for "was X considered?" questions.
-- **start-exploration** — wraps `cairn exploration start "<desc>"` for exploratory work.
-- **resolve-exploration** — wraps `cairn exploration close <name>` when an exploration branch is merged or abandoned. Counterpart to `start-exploration`.
-- **complete-action** — wraps `cairn action complete <id>` when something gets done.
-- **log-finding** — wraps `cairn finding add` when the user discovers something worth recording.
-- **debrief** — at session-end signals ("let's wrap up", "good place to stop"), reviews the conversation and produces a single batched proposal of any captures that didn't happen live. One round of bulk confirmation rather than per-item interruptions.
-
-Suggest two concrete next steps they might take in this session:
-
-1. Edit `PROJECT.md` to fill in the project overview and current focus (the file ships with TODO markers).
-2. Add a goal or two with `cairn decision add` / `cairn action add` so the cairn has real state to be useful against.
-
-End with:
+## Step 7 — Register the MCP server with Claude Code ★
 
 ```sh
-cairn status        # compact summary, <30 lines
-cairn validate      # confirms schema + cross-references are clean
+claude mcp add cairn -- cairn mcp
 ```
 
-## Step 6.5 — Make this session live *inside* the cairn (env-based installs only) ★
+This is **one-time, ever** — the same command regardless of how many cairns the user has. One MCP server serves all of them (per ADR-0010).
 
-Note on what already ships: every cairn scaffolded by `cairn init` comes with a `.claude/settings.json` that has a SessionStart hook running `cairn status`. That gives any Claude Code session opened in the cairn an immediate project-state context dump. The `.gitignore` already excludes `.claude/settings.local.json` (the per-user, per-machine file below). You do NOT need to create either of those files in the pipx case.
+Confirm:
 
-Skip the rest of this step if the user installed via **pipx** in Step 2 — `cairn` is on PATH everywhere, the bundled hook runs, and you're done; just `cd <project-path>` once.
+```sh
+claude mcp list   # `cairn` should appear
+```
 
-For users who picked Option 2 (an existing venv / conda / pixi / uv env), `cairn` only resolves when that env is activated, and your Bash tool resets shell state between calls. The fix is to write a `.claude/settings.local.json` file at the cairn root that prepends the env's `bin/` to `PATH`. Claude Code reads this file alongside `.claude/settings.json` and merges them.
+Tell the user explicitly:
 
-1. `cd <project-path>` (one time — the working directory will persist).
-2. Capture the env's `bin/` directory. If you remember the path from Step 2, use it directly. Otherwise: `which cairn` (after activating the env once, e.g., `conda activate cairn`) returns `<env>/bin/cairn`; the relevant directory is the parent.
-3. Write `.claude/settings.local.json` inside the cairn:
+> *"I've registered the cairn MCP server with Claude Code. To pick up the change in any currently-running Claude Code sessions, you'll need to restart them. New sessions started from this point will have the cairn tools available automatically."*
 
-   ```json
-   {
-     "env": {
-       "PATH": "/absolute/path/to/env/bin:$PATH"
-     }
-   }
-   ```
+## Step 8 — Pair the project repo (optional, recommended for Scenario B)
 
-4. No `.gitignore` edit needed — the bundled template already excludes `.claude/settings.local.json`. Confirm with `git status` that the new file does not appear.
+If the user has a project repo and wants agents working in it to discover the cairn automatically:
 
-5. Verify in a fresh Bash call (no env activation) that `cairn --help` now resolves.
+```sh
+cd <path-to-project-repo>
+cairn link --name <project-name>
+```
 
-Tell the user: *"Future Claude Code sessions opened in this cairn will auto-orient via the bundled SessionStart hook, and `cairn` will resolve without activation. You're set."*
+This writes a small `cairn.toml` at the project repo's root naming the registry handle. Agents walk up from cwd, find it, and pass that name to MCP tools transparently — no `cd` needed.
 
-## What to do if anything fails
+## Step 9 — Drive the bootstrap (Scenario B only)
 
-- **`cairn` command not found after install**: the install env's `bin/` isn't on PATH. Tell the user; offer to use the absolute path (`~/.venvs/cairn/bin/cairn …`) for the rest of the session, OR write `.claude/settings.local.json` as in Step 6.5.
-- **`cairn init` errors with "no git user identity configured"**: go back to Step 3 and set it; do not invent.
-- **`cairn init` errors with "refusing to overwrite"**: a directory with that name already exists. Ask the user whether to pick a new name or pass `--force` (which deletes the existing directory; warn first).
-- **Any schema or YAML error**: stop, show the user the exact error, and ask how to proceed. Do not edit state files by hand to "fix" them without confirmation.
-- **`pipx upgrade cairn` did nothing on an old install**: expected if the installed version is the pre–hatch-vcs static `0.1.0`. Run `pipx install --force git+https://github.com/cranmer/cairn` once to land on the dynamic-versioning era; after that, `pipx upgrade` works normally. See the "Upgrading Cairn later" section below.
+If the user picked **Scenario B**, the cairn now exists but is empty. **You** drive the bootstrap from this same session:
 
-## What you should *not* do
+1. Tell the user: *"Now I'll bootstrap the cairn from `<project-repo-path>`. I'll survey its README, docs, git history, and PR descriptions; draft a single batched proposal of inferred collaborators, decisions, findings, and open questions; and get one consent round from you before any writes. Sound right?"*
 
-- Do not commit on the user's behalf without showing them the proposed commit message first (after this bootstrap is complete; during bootstrap, the `cairn` CLI handles attribution).
-- Do not install global pip packages without confirming the environment in Step 2.
-- Do not run `git config --global` to change values the user already has set.
-- Do not create more than one cairn in this session. One project = one cairn.
+2. Read the bundled `bootstrap_from_repo` skill — either by reading `<cairn-path>/skills/bootstrap_from_repo/SKILL.md` directly, or by calling the MCP tool `get_skill(name="bootstrap_from_repo")` if your session has the MCP server connected.
 
-## When you're done
+3. Follow that skill's procedure. The skill explicitly covers: surveying order, type classification (decision / finding / question / action), the batched-proposal consent gate, backdating with the `date` parameter, structured PR / commit provenance via `source_prs` and `source_commits`, the *ambiguous authorship* pattern (use a `repo-history` collaborator with `type="unknown"` for observations no single human authored), and the summarize-and-stop closing.
 
-Report **honestly** about what just happened. Two facts to convey:
+4. **Stop after the bootstrap completes.** The user will direct what comes next.
 
-1. **Where the cairn lives** — its absolute path; it's a sibling of any existing project repos, not nested inside them.
-2. **What mode this session is in** — and the key word is *honestly*. Mode is determined by where the user *opened Claude Code*, not where you are now after `cd`ing during bootstrap:
-   - If the user's *initial* cwd was inside the cairn directory, this is **Mode A**: the cairn's SessionStart hook fired and `cairn status` ran automatically.
-   - If the user's *initial* cwd was anywhere else (typically their project's code repo), this is **Mode B**: the hook did not fire. You can still run cairn commands by `cd`-ing or by using full paths, and you can read the SKILL.md procedures on demand — but don't claim this is Mode A. It isn't.
+## Step 10 — When you're done
 
-   In either case, the SKILL.md files are *procedural prose* (see Step 6's note), not registered Claude Code skills. Don't tell the user the skills are "loaded" or "available" as if they were slash commands.
+Report **honestly** about what just happened. Key facts to convey:
 
-A reasonable closing message:
-
-> Your cairn `<name>` is live at `<absolute-path>`. This session was opened in `<initial-cwd>`, so it's **<Mode A or Mode B>**. <If Mode B: I can still capture findings, decisions, and actions to the cairn during our conversation — I'll run the CLI commands from there for you. The SessionStart auto-orient only fires when you open Claude Code from inside the cairn directory.> The cairn's SKILL.md procedures (orient, log-finding, debrief, etc.) are prose I'll read on demand when their triggers fire; once a future `cairn skills install` ships (ADR-0006 Stage 3) they'll be registered as real `/orient`, `/log-finding`, etc. slash commands. For ongoing project work today: continue here, or open a fresh session wherever feels natural — just describe what you want to do next, and I'll pick the right procedure.
+1. **The cairn lives at** `<absolute-path>`. It's a sibling of the project repo (if any), not nested inside.
+2. **Mode determination**: was the user's *initial* cwd (the one you captured at the very start) the same as the cairn directory you just `cd`'d into?
+   - If **yes** → this session is in **server mode**; the cairn's SessionStart hook fired and `cairn status` ran automatically.
+   - If **no** (the initial cwd was elsewhere — typically the user's project repo) → this session is in **client mode**; the hook did not fire. You can still run cairn commands by `cd`-ing or via MCP, but be honest: the auto-orient didn't happen.
+3. **What the user should expect from here**:
+   - Future Claude Code sessions opened *anywhere* will have the cairn MCP tools available (after they restart any open ones to pick up the `claude mcp add` change).
+   - Cairn captures happen as a side effect of conversation — they shouldn't have to learn new commands. The `TRACKING.md` posture guide inside the cairn explains the agent's role.
+   - For Scenario A users: just start working. Mention findings, decisions, action items as they come up — the agent will capture them.
+   - For Scenario B users: the bootstrap is now in the cairn's history with backdated entries and structured provenance.
 
 Then stop. The user will direct the next step.
 
-## Upgrading Cairn later
+## What you should *not* do
 
-Cairn is pre-1.0 and changes land directly on `main`. The package version is now derived from git via `hatch-vcs` — every commit produces a unique version like `0.1.0.dev28+g0b9c97f`, so `pipx upgrade cairn` (and `pip install --upgrade`) correctly detect new commits rather than short-circuiting on matching static metadata.
+- Do not commit on the user's behalf without showing them the proposed commit message first (after this bootstrap is complete; during bootstrap, `cairn` and the MCP tools handle attribution).
+- Do not install global pip packages without confirming the environment.
+- Do not run `git config --global` to change values the user already has set.
+- Do not create more than one cairn in this session. One project = one cairn.
+- Do not claim "Mode A / server mode" if the user's initial cwd was their project repo. The mode is set the moment Claude Code launched, not by where you `cd` during bootstrap.
+- Do not ask the user to run cairn CLI commands. You have the CLI and the MCP tools — use them on the user's behalf.
 
-To pick up the latest:
+## If something fails
+
+- **`cairn` command not found after install**: pipx didn't put it on PATH. Tell the user; offer the absolute path (`~/.local/bin/cairn …`).
+- **`cairn init` errors with "no git user identity configured"**: go back to Step 3; do not invent values.
+- **`cairn register --init` errors with "refusing to overwrite"**: a directory with that name already exists. Ask the user whether to pick a new name or pass `--force` (which deletes the existing directory; warn first).
+- **`claude mcp add` not available**: the user's Claude Code may be older than the `mcp add` CLI feature. Fall back to editing `~/.claude.json` directly to add `{"mcpServers": {"cairn": {"command": "cairn", "args": ["mcp"]}}}`.
+- **MCP tools not visible in a follow-up session**: confirm `claude mcp list` shows `cairn`, then the user needs to restart Claude Code (not just clear context — a true session restart).
+- **Any other error**: stop, show the user the exact error, ask how to proceed. Do not edit state files by hand to "fix" things without confirmation.
+
+## Upgrading cairn later (after this bootstrap is done)
+
+Cairn is pre-1.0 and changes land on `main`. To pick up the latest:
 
 ```sh
-# pipx (recommended install path)
-pipx upgrade cairn                                              # if Cairn was installed via pipx
-pipx install --force git+https://github.com/cranmer/cairn       # equivalent; works even when upgrade can't
-
-# pip in a venv / conda env
-pip install --upgrade git+https://github.com/cranmer/cairn
+pipx install --force 'cairn[mcp] @ git+https://github.com/cranmer/cairn'
 ```
 
-If you (or the user) hit a Cairn install from before this commit where the version was the static `0.1.0`, `pipx upgrade` will no-op — fall back to `pipx install --force ...` once, and `pipx upgrade` will work from then on.
+After upgrading, existing cairns don't auto-receive new bundled skills. Run inside the cairn:
 
-After upgrading, **existing cairns are not automatically updated.** They already shipped with whatever template / skills / `.claude/settings.json` were current at `cairn init` time, and Cairn doesn't yet have a `cairn upgrade <project>` migration command. If a meaningful template change shipped, surface that to the user and either (a) re-init into a new directory and have the user copy state over, or (b) cherry-pick specific files from the new template's location (see `python -c "import importlib.resources; print(importlib.resources.files('cairn').joinpath('templates','default'))"`). Don't auto-overwrite without asking — the user may have hand-edited PROJECT.md, etc.
+```sh
+cairn skills sync   # non-destructive; only copies skills the cairn doesn't have
+```
+
+That's it. The user can now describe what they want to do next, and you should pick the right approach — usually nothing more than listening and capturing transparently as the work happens.

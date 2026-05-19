@@ -1,131 +1,190 @@
 # Quickstart
 
-A five-minute path from a clean clone to a working cairn.
+A five-minute path from a clean machine to a working cairn that your Claude Code sessions can read from and write to.
 
-> **Want your agent to do this for you?** See [`AGENT-BOOTSTRAP.md`](AGENT-BOOTSTRAP.md). Paste that file into a fresh Claude Code session and the agent will install Cairn, scaffold a new cairn, and register you as the first collaborator — pausing for your confirmation at each major step.
+This is the canonical setup doc for both humans and agents. If you're an agent reading this: a human pasted this file to you. Follow the steps from your end — the user shouldn't have to drive each step, but should be asked to confirm at the ★ marks.
 
-## 1. Install
+## What you're going to do
 
-Requires **Python ≥ 3.10** and `git` on PATH.
+1. Install `cairn` with the MCP extra (pipx).
+2. Pick a scenario:
+   - **Scenario A — Start from scratch:** brand new project, no existing code repo (or you don't want to seed from one yet).
+   - **Scenario B — Bootstrap from an existing repo:** the common case — you have a project repo with months/years of history that already encodes decisions and findings.
+3. Wire the MCP server into Claude Code (one-time, ever).
+4. Pair the project repo with the cairn so agents discover it from cwd.
+
+After this, every Claude Code session anywhere has access to the cairn's MCP tools (`whoami`, `status`, `add_decision`, `add_finding`, `add_action`, `complete_action`, `get_open_questions`, plus a dozen more) without any further setup.
+
+## Step 1 — Install ★
+
+Requires **Python ≥ 3.10** and `git` on PATH. **pipx** is strongly recommended — it puts `cairn` on PATH everywhere without env-activation friction.
 
 ```sh
-git clone https://github.com/cranmer/cairn.git
-cd cairn
-pip install -e ".[dev]"
+# If pipx isn't already installed:
+python -m pip install --user pipx && python -m pipx ensurepath
+
+# Install cairn with the MCP extra:
+pipx install 'cairn[mcp] @ git+https://github.com/cranmer/cairn'
+
+# Verify:
+cairn --help        # should list init, register, link, mcp, decision, finding, ...
+cairn version       # something like 0.0.1.devNN+g<sha>
 ```
 
-Verify:
+(Cairn is not on PyPI; `pip install cairn` would pull an unrelated package. Always install from the git URL.)
 
-```sh
-cairn --help
-```
+## Step 2 — Configure git identity (one-time) ★
 
-You should see the available subcommands: `init`, `collaborator`, `decision`, `validate`, `status`, `version`.
-
-## 2. Configure your git identity (one-time)
-
-Cairn refuses to scaffold a cairn without a configured git identity — every commit, by any actor, carries attribution.
+Cairn refuses to commit without a configured git user.
 
 ```sh
 git config --global user.name  "Your Name"
 git config --global user.email "you@example.com"
 ```
 
-## 3. Create a cairn
+If they're already set, leave them.
+
+## Step 3 — Choose your scenario
+
+### Scenario A — Start from scratch
+
+For a brand-new project with no existing code repo, or when you'd rather seed the cairn live from conversation rather than bootstrap from history.
 
 ```sh
-cd /tmp                              # or anywhere outside the framework repo
-cairn init my-project --no-input
-cd my-project
+# Scaffold a fresh cairn alongside where your code repo(s) will live:
+cd ~/projects                                  # or wherever you keep work
+cairn register myproject ./myproject-cairn --init
+
+# Add yourself as the first collaborator:
+cd myproject-cairn
+cairn collaborator add \
+  --id $(whoami) \
+  --name "Your Name" \
+  --role "what you actually do — 'project lead', 'building the model', etc." \
+  --email you@example.com \
+  --github your-handle
 ```
 
-This scaffolds the canonical layout (`state/`, `knowledge/`, `skills/`, `explorations/`, plus `PROJECT.md` and `README.md`), seeds empty-but-valid YAML state files, and creates the initial git commit attributed to you.
+`cairn register --init` does both `cairn init` and registers the cairn with the MCP server in one step. Pick `myproject` as a short handle — that's what MCP tools will receive as the `cairn` parameter (e.g., `add_decision(cairn="myproject", ...)`).
+
+Skip ahead to **Step 4** to wire MCP up.
+
+### Scenario B — Bootstrap from an existing repo
+
+For projects that already have a code repo with accumulated history (README, ADRs, PRs, contributor list). The cairn picks that history up as backdated decisions and findings before live capture starts.
 
 ```sh
-git log --oneline                    # one initial commit
-ls state/                            # five YAML files, all []
+# Scaffold the cairn alongside the project repo, not inside it:
+cd ~/projects                                  # the parent of your code repo
+cairn register myproject ./myproject-cairn --init
+
+# Add yourself first (so subsequent writes can be attributed):
+cd myproject-cairn
+cairn collaborator add \
+  --id $(whoami) \
+  --name "Your Name" \
+  --role "your role" \
+  --email you@example.com \
+  --github your-handle
+
+# Continue to Step 4 to wire MCP up, THEN open a Claude Code session
+# in your project repo and ask the agent to bootstrap. The agent will
+# discover and follow the `bootstrap_from_repo` skill — survey the
+# repo, draft a single batched proposal of inferred collaborators /
+# decisions / findings, get one consent round, then write with
+# correctly-backdated dates and structured PR / commit provenance.
 ```
 
-## 4. Add collaborators and a decision
+The bootstrap step itself is an agent action, not a human one. You drive it by asking the agent: *"Bootstrap this cairn from `~/projects/myproject`."* The agent reads the skill and walks the workflow with you.
+
+## Step 4 — Register the MCP server with Claude Code (one-time, ever) ★
 
 ```sh
-cairn collaborator add --id you   --name "Your Name"    --role "project lead"
-cairn collaborator add --id maria --name "Maria Santos" --role "methods" \
-                       --expertise "causal inference" --expertise R
-
-cairn decision add --author you \
-                   --text   "Use stratified resampling for the imbalanced classes" \
-                   --context "Discussed in meeting; alternative was SMOTE"
-
-cairn action add --assignee maria --text "rerun model on rare-class subset" --due-date 2026-06-01
-cairn finding add --author you \
-                  --title "Stratified resampling beats SMOTE on rare events" \
-                  --related D-001
+claude mcp add cairn -- cairn mcp
 ```
 
-Each command stages and commits its change, attributed to you. The decision is auto-assigned `D-001`, the action `A-001`, with UTC ISO 8601 timestamps. The finding lands at `knowledge/findings/<today>-stratified-resampling-beats-smote-on-rare-events.md`.
+That's it. Same command no matter how many cairns you have — one MCP server serves all of them (per ADR-0010). Each MCP tool accepts a `cairn` parameter naming which one to operate on; when you have only one registered, that parameter defaults.
 
-## 5. Inspect
+Confirm:
 
 ```sh
-cairn validate                       # exit 0 — schema and cross-refs are clean
-cairn status                         # compact summary, <30 lines
-cairn status --json | python -m json.tool   # machine-readable
+claude mcp list           # should show `cairn` in the list
 ```
 
-Try breaking things to see the failure modes:
+**Restart any open Claude Code sessions** so they pick up the new MCP server. New sessions started after this point will have the cairn tools available immediately.
+
+## Step 5 — Link the project repo with the cairn
+
+So that agents working in your project repo discover the right cairn from cwd, without any flag:
 
 ```sh
-# Edit state/decisions.yaml and add a dangling reference like
-#   related: [Q-999]
-cairn validate                       # exit 1, names the file + entity + bad ref
+cd ~/projects/myproject                   # your code repo
+cairn link --name myproject
 ```
 
-## What's where
+This writes a small `cairn.toml` at the project repo root naming which cairn (by registry handle) the project pairs with. Agents walk up from cwd, find it, and pass that name to MCP tools transparently.
 
-- `state/decisions.yaml`, `open_questions.yaml`, `action_items.yaml`, `goals.yaml`, `collaborators.yaml` — canonical state.
-- `knowledge/meetings/`, `findings/`, `literature/`, `provenance/` — accumulating project knowledge.
-- `skills/` — procedural skills available to agents working in this cairn.
-- `explorations/README.md` — index of active exploration branches.
-- `PROJECT.md` — short orientation file an agent reads first.
+For Scenario A, your "project repo" may not exist yet; you can run `cairn link` later when it does. For Scenario B, do it now.
 
-## Bulk input via YAML
+## Step 6 — Open a session and check it works
+
+Open Claude Code in your project repo (Scenario B) or the cairn directory (Scenario A) and ask:
+
+> *"What cairn tools do you have?"*
+
+The agent should list the tools (whoami, status, add_decision, etc). Then:
+
+> *"What's the project status?"*
+
+The agent should call the `status` MCP tool. For a fresh cairn it'll return mostly-zero counts plus a `suggested_next` hint about bootstrap if Scenario B applies.
+
+For **Scenario B**, follow up with:
+
+> *"Please bootstrap the cairn from this project repo."*
+
+The agent will follow the bundled `bootstrap_from_repo` skill — survey, propose, consent gate, write with backdated dates + structured provenance.
+
+For **Scenario A**, just start working. The agent will capture decisions, findings, and action items as they come up in conversation (read TRACKING.md inside the cairn to understand the posture).
+
+## What you have now
+
+- A cairn at `~/projects/myproject-cairn/` — your project's shared memory, on disk, in git.
+- A pairing file at `~/projects/myproject/cairn.toml` — so agents in the project repo know which cairn to use.
+- `cairn` registered as an MCP server in Claude Code — every session can read/write the cairn through ~28 MCP tools.
+
+Anything the cairn knows is in its git history. Anything any collaborator (human or AI) did flows through the same MCP tools you just exercised. Async work compounds.
+
+## What's in a cairn
+
+The default scaffold:
+
+- `PROJECT.md` — three-section overview (Overview, Current focus, Related repositories). Edit via `set_project_overview` / `set_current_focus` / `set_related_repositories` MCP tools.
+- `state/decisions.yaml`, `open_questions.yaml`, `action_items.yaml`, `goals.yaml`, `collaborators.yaml` — canonical state. Written via MCP tools or `cairn <verb> add` CLI commands. Don't edit YAML by hand if you can avoid it.
+- `knowledge/findings/`, `meetings/`, `literature/`, `provenance/` — accumulating knowledge. Markdown files; findings have YAML frontmatter.
+- `skills/<name>/SKILL.md` — bundled agent skills (`orient`, `log-finding`, `log-decision`, `log-action`, `bootstrap_from_repo`, `debrief`, `start-exploration`, `resolve-exploration`, `complete-action`, `search-history`). Read via the `get_skill` MCP tool.
+- `explorations/` — tracked alternative lines of inquiry, materialized as git branches.
+- `TRACKING.md` — agent-facing posture guide (capture eagerly, debrief at end-of-block, two paths for invoking cairn operations).
+
+## Upgrading later
+
+Cairn is pre-1.0; changes land on `main`. To pick up the latest:
 
 ```sh
-cat <<'EOF' > team.yaml
-- id: kyle
-  name: Kyle Cranmer
-  role: project lead
-- id: lit-monitor
-  name: Literature Monitor
-  role: literature monitor
-  type: ai-collaborator
-  trigger: weekly
-EOF
-
-cairn collaborator add --yaml team.yaml
-# or:  cat team.yaml | cairn collaborator add --yaml -
+pipx install --force 'cairn[mcp] @ git+https://github.com/cranmer/cairn'
 ```
 
-## Other templates
+After upgrading, existing cairns don't auto-receive new bundled skills. Run inside each cairn:
 
 ```sh
-cairn init my-other --template /path/to/local/template --no-input
-# or, with the optional cookiecutter extra:
-pip install -e ".[cookiecutter]"
-cairn init my-other --template https://github.com/example/template
+cairn skills sync         # copies any newly-bundled skills into this cairn
 ```
 
-## Run the tests
-
-```sh
-pytest                               # full suite (~5s)
-ruff check src tests                 # lint
-```
+`sync` is non-destructive by default — it only copies skills you don't have. Pass `--force` to also overwrite ones you've hand-edited (rarely what you want).
 
 ## Where to go next
 
-- `ARCHITECTURE.md` — the design document.
-- `USER_STORIES.md` — testable user stories (US-NN IDs). The primary specification.
-- `CLAUDE.md` — conventions for contributing.
-- `docs/decisions/` — architectural decision records.
+- `ARCHITECTURE.md` — design document, the principles, the build path.
+- `USER_STORIES.md` — testable user stories. The primary specification.
+- `docs/decisions/` — ADRs locking in design choices.
+- `docs/open-questions.md` — unresolved design tensions awaiting ADRs.
+- `docs/overview.html` — polished overview for sharing with colleagues.
