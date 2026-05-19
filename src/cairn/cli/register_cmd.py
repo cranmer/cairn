@@ -90,7 +90,7 @@ def register(
     typer.echo(
         "\nIf you haven't yet, register the cairn MCP server with Claude Code "
         "(one-time, ever — same command regardless of how many cairns you have):\n"
-        "  claude mcp add cairn -- cairn mcp\n"
+        "  claude mcp add cairn cairn mcp\n"
         "Then restart any open Claude Code sessions to pick it up."
     )
 

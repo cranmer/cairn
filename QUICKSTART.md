@@ -100,7 +100,7 @@ The bootstrap step itself is an agent action, not a human one. You drive it by a
 ## Step 4 — Register the MCP server with Claude Code (one-time, ever) ★
 
 ```sh
-claude mcp add cairn -- cairn mcp
+claude mcp add cairn cairn mcp
 ```
 
 That's it. Same command no matter how many cairns you have — one MCP server serves all of them (per ADR-0010). Each MCP tool accepts a `cairn` parameter naming which one to operate on; when you have only one registered, that parameter defaults.

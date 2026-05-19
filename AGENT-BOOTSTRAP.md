@@ -149,7 +149,7 @@ git log --oneline               # "Add collaborator '<id>'"
 ## Step 7 — Register the MCP server with Claude Code ★
 
 ```sh
-claude mcp add cairn -- cairn mcp
+claude mcp add cairn cairn mcp
 ```
 
 This is **one-time, ever** — the same command regardless of how many cairns the user has. One MCP server serves all of them (per ADR-0010).

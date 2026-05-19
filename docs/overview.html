@@ -440,7 +440,15 @@
 
     <p>Cairn is a tool and design standard for hybrid human/AI research collaboration. It defines a small set of repository conventions, file schemas, and agent skills, and provides a Python package plus an MCP server that lets every Claude Code session read from and write to a project's shared memory — the decisions, findings, open questions, action items, meeting notes, and tracked alternative explorations that accumulate over the life of a project.</p>
 
-    <p>The name borrows from the stone markers travelers build along trails. Each person who passes adds to the pile. The cairn persists for those who follow, points to the path, and survives the absence of any individual builder. Its construction is collective; its inspection is open; its purpose is to make the accumulated knowledge available to anyone walking the route later.</p>
+    <p>The name borrows from the stone markers travelers build along trails — <a href="https://en.wikipedia.org/wiki/Cairn">cairns</a>. Each person who passes adds to the pile. The cairn persists for those who follow, points to the path, and survives the absence of any individual builder. Its construction is collective; its inspection is open; its purpose is to make the accumulated knowledge available to anyone walking the route later.</p>
+
+    <figure>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Rock_Cairn.jpg/960px-Rock_Cairn.jpg"
+           alt="A stone cairn — a pile of rocks built by passing travelers along a trail"
+           loading="lazy"
+           style="width:100%; height:auto; display:block; border:1px solid var(--rule); border-radius:6px;">
+      <figcaption><strong>A cairn.</strong> Built one stone at a time by travelers along a trail. Photo: <a href="https://commons.wikimedia.org/wiki/File:Rock_Cairn.jpg">Wikimedia Commons</a>.</figcaption>
+    </figure>
 
     <p>The word carries over: a research project's repository, organized following Cairn's conventions, is itself <em>a cairn</em>. There is one cairn per project. <em>Cairn</em> — capitalized — is the framework that defines what a cairn looks like and provides the tooling to create and operate one. A cairn sits <em>alongside</em> a project's code, data, and paper repositories, never inside one of them.</p>
 
@@ -456,7 +464,7 @@
     <div class="section-number">§2 — Two foundational commitments</div>
     <h2>Where state lives, and where work happens.</h2>
 
-    <p class="lead">Cairn's surface has grown over months of UX testing. Most of the design choices flow back to two paired commitments: one about <em>where state lives</em>, the other about <em>where work happens</em>. Holding both lines simultaneously is what makes the framework feel like a quiet collaborator rather than a new tool to learn.</p>
+    <p class="lead">Cairn's design choices are driven by two paired commitments: one about <em>where state lives</em>, the other about <em>where work happens</em>. Holding both lines simultaneously is what makes the framework feel like a quiet collaborator rather than a new tool to learn.</p>
 
     <div class="principles">
       <div class="principle">
@@ -516,7 +524,7 @@
     <p>This is the entire base substrate. You can use a cairn with nothing but a text editor and the <code>cairn</code> CLI, and it works. The git history is the single source of truth.</p>
 
     <h3>The MCP server — the agent's interface</h3>
-    <p>On top of the substrate, the <code>cairn mcp</code> server exposes about 28 read and write tools to Claude Code: <code>whoami</code>, <code>status</code>, <code>add_decision</code>, <code>add_finding</code>, <code>add_action</code>, <code>complete_action</code>, <code>add_open_question</code>, <code>resolve_open_question</code>, semantic project-section getters and setters, exploration lifecycle, skill discovery, and lookups. One server serves all of a user's cairns; each tool accepts a <code>cairn</code> parameter naming the target, and defaults to the only registered cairn when there's just one.</p>
+    <p>On top of the substrate, the <code>cairn mcp</code> server exposes about 30 read and write tools to Claude Code: <code>whoami</code>, <code>status</code>, <code>add_decision</code>, <code>add_finding</code>, <code>add_action</code>, <code>complete_action</code>, <code>add_open_question</code>, <code>resolve_open_question</code>, semantic project-section getters and setters, exploration lifecycle, skill discovery, and lookups. One server serves all of a user's cairns; each tool accepts a <code>cairn</code> parameter naming the target, and defaults to the only registered cairn when there's just one.</p>
 
     <p>Critically, the MCP server <em>owns no state</em>. Every byte it returns is reproducible from the cairn's files. Every write the server accepts goes through the same Python functions the CLI uses. The MCP server is a derived view that happens to be the agent's natural interface.</p>
 
@@ -541,7 +549,7 @@
     <ol>
       <li><strong>Install</strong>: <code>pipx install 'cairn[mcp] @ git+https://github.com/cranmer/cairn'</code>.</li>
       <li><strong>Register the cairn</strong>: <code>cairn register myproject ./myproject-cairn --init</code> (scaffolds and registers in one step).</li>
-      <li><strong>Wire MCP into Claude Code</strong>: <code>claude mcp add cairn -- cairn mcp</code>. One-time, ever — same command no matter how many cairns you have.</li>
+      <li><strong>Wire MCP into Claude Code</strong>: <code>claude mcp add cairn cairn mcp</code>. One-time, ever — same command no matter how many cairns you have.</li>
       <li><strong>Pair your project repo</strong>: <code>cd myproject &amp;&amp; cairn link --name myproject</code>.</li>
       <li><strong>Open a Claude Code session</strong> in your project repo and ask the agent <em>"what cairn tools do you have?"</em> to confirm. For a project with existing history, follow up with <em>"please bootstrap this cairn from this project repo"</em> and the agent will follow the <code>bootstrap_from_repo</code> skill.</li>
     </ol>

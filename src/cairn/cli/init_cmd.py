@@ -125,6 +125,6 @@ def init(
         f"  cairn link <path/to/project-repo> --name <short-handle>  "
         f"# pair a code repo with this cairn\n"
         f"\nOne-time, ever (registers the cairn MCP server with Claude Code):\n"
-        f"  claude mcp add cairn -- cairn mcp\n"
+        f"  claude mcp add cairn cairn mcp\n"
         f"Then restart any open Claude Code sessions to pick it up."
     )

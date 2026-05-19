@@ -13,7 +13,7 @@ Cairn defines a repository structure, file schemas, and conventions for maintain
 
 **Augmentation, not replacement.** Cairn does not ask collaborators to change how they work. You keep using your normal tools — git, Zoom, Slack, email, conversation — at your normal rhythm. An agent listens in those native channels and writes structured notes into the cairn as a side effect, so other collaborators (and future agents, and you three months later) can catch up on the structured view without having been in the room. The principle is captured in [`docs/decisions/0007-augmentation-not-replacement.md`](docs/decisions/0007-augmentation-not-replacement.md) and pairs with the existing substrate-as-specification commitment: the former says *where work happens* (in your native channels); the latter says *where state lives* (files in git).
 
-**MCP-first.** The primary integration is an MCP server (`cairn mcp`) that exposes ~28 read and write tools to any Claude Code session. One server serves all of a user's cairns (per [ADR-0010](docs/decisions/0010-single-mcp-server-multiple-cairns.md)); each MCP tool accepts a `cairn` parameter naming the target, defaulting to the only registered one when there's just one. Wire it up once with `claude mcp add cairn -- cairn mcp` and every session anywhere has access to the cairn without `cd` or per-session bootstrap.
+**MCP-first.** The primary integration is an MCP server (`cairn mcp`) that exposes ~28 read and write tools to any Claude Code session. One server serves all of a user's cairns (per [ADR-0010](docs/decisions/0010-single-mcp-server-multiple-cairns.md)); each MCP tool accepts a `cairn` parameter naming the target, defaulting to the only registered one when there's just one. Wire it up once with `claude mcp add cairn cairn mcp` and every session anywhere has access to the cairn without `cd` or per-session bootstrap.
 
 **Two access modes — client and server.** Most of the time you're in **client mode**: a Claude Code session opened in your project's code repo (or, in future, a Zoom transcript / Slack thread), with the cairn as a transparent backend the agent calls into via MCP. This is the everyday case and the primary surface. **Server mode** — a session opened inside the cairn directory — is for occasional maintenance: deep debriefs, restructuring, planning meetings, spelunking through accumulated history. See [`docs/decisions/0008-client-server-and-exploration-rename.md`](docs/decisions/0008-client-server-and-exploration-rename.md).
 
@@ -93,7 +93,7 @@ Once installed (`pipx install 'cairn[mcp] @ git+https://github.com/cranmer/cairn
 **MCP / registry:**
 | Command | Purpose |
 |---------|---------|
-| `cairn mcp` | Run the MCP server over stdio (configured via `claude mcp add cairn -- cairn mcp`) |
+| `cairn mcp` | Run the MCP server over stdio (configured via `claude mcp add cairn cairn mcp`) |
 | `cairn register <name> <path>` | Add a cairn to the user-level MCP registry. `--init` scaffolds it if missing |
 | `cairn unregister <name>` | Remove a cairn from the registry |
 | `cairn registered` | List currently registered cairns |

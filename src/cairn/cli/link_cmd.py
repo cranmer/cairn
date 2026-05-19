@@ -84,7 +84,7 @@ def link(
             "\nFor agents in Claude Code sessions opened here to reach the "
             "cairn, the cairn MCP server must be registered with Claude Code "
             "(one-time, ever):\n"
-            "  claude mcp add cairn -- cairn mcp\n"
+            "  claude mcp add cairn cairn mcp\n"
             "Then restart any open Claude Code sessions to pick it up."
         )
         return
@@ -127,7 +127,7 @@ def link(
         "\nFor agents in Claude Code sessions opened here to reach the "
         "cairn, the cairn MCP server must be registered with Claude Code "
         "(one-time, ever):\n"
-        "  claude mcp add cairn -- cairn mcp\n"
+        "  claude mcp add cairn cairn mcp\n"
         "Then restart any open Claude Code sessions to pick it up."
     )
 

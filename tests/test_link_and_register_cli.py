@@ -142,7 +142,7 @@ def test_init_emits_next_steps_message(
     assert "cairn collaborator add" in res.output
     assert "cairn register" in res.output
     assert "cairn link" in res.output
-    assert "claude mcp add cairn -- cairn mcp" in res.output
+    assert "claude mcp add cairn cairn mcp" in res.output
 
 
 def test_register_reminds_to_wire_up_mcp(
@@ -155,7 +155,7 @@ def test_register_reminds_to_wire_up_mcp(
         app, ["register", "fresh", str(target), "--init"], catch_exceptions=False
     )
     assert res.exit_code == 0, res.output
-    assert "claude mcp add cairn -- cairn mcp" in res.output
+    assert "claude mcp add cairn cairn mcp" in res.output
 
 
 def test_orient_prints_project_md_and_status(
@@ -194,4 +194,4 @@ def test_link_reminds_to_wire_up_mcp(
         app, ["link", "--name", "demo"], catch_exceptions=False
     )
     assert res.exit_code == 0, res.output
-    assert "claude mcp add cairn -- cairn mcp" in res.output
+    assert "claude mcp add cairn cairn mcp" in res.output
