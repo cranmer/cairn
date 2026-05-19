@@ -12,6 +12,7 @@ from .finding_cmd import app as finding_app
 from .init_cmd import init
 from .link_cmd import link
 from .mcp_cmd import mcp
+from .orient_cmd import orient
 from .register_cmd import register, registered, unregister
 from .status_cmd import status
 from .validate_cmd import validate
@@ -30,6 +31,7 @@ app.add_typer(exploration_app, name="exploration")
 app.add_typer(finding_app, name="finding")
 app.command(name="validate")(validate)
 app.command(name="status")(status)
+app.command(name="orient")(orient)
 app.command(name="link")(link)
 app.command(name="register")(register)
 app.command(name="unregister")(unregister)

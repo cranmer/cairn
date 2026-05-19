@@ -115,3 +115,16 @@ def init(
             f"Manual `git commit` would otherwise fail. To re-enable: "
             f"`git -C {paths.root} config --unset commit.gpgsign`."
         )
+    typer.echo(
+        f"\nNext steps:\n"
+        f"  cd {paths.root.name}\n"
+        f"  cairn collaborator add --id <you> --name \"<Your Name>\" "
+        f"--role \"<what you do>\" --email <you@example.com>\n"
+        f"  cairn register <short-handle> .              "
+        f"  # add to MCP registry (pick any short name)\n"
+        f"  cairn link <path/to/project-repo> --name <short-handle>  "
+        f"# pair a code repo with this cairn\n"
+        f"\nOne-time, ever (registers the cairn MCP server with Claude Code):\n"
+        f"  claude mcp add cairn -- cairn mcp\n"
+        f"Then restart any open Claude Code sessions to pick it up."
+    )

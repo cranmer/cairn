@@ -118,6 +118,170 @@ def test_get_open_questions_returns_list(cairn_root: Path):
     assert out == []
 
 
+def test_add_collaborator_via_mcp(cairn_root: Path):
+    out = _call(
+        "add_collaborator",
+        {
+            "id": "maria",
+            "name": "Maria Santos",
+            "role": "methods",
+            "cairn": "c",
+            "email": "maria@example.com",
+        },
+    )
+    assert out["id"] == "maria"
+    assert out["cairn"] == "c"
+    # And a subsequent decision authored by maria succeeds (the new id is known)
+    dec = _call(
+        "add_decision",
+        {"author": "maria", "text": "method change", "cairn": "c"},
+    )
+    assert dec["id"].startswith("D-")
+
+
+def test_add_collaborator_rejects_duplicate_id(cairn_root: Path):
+    with pytest.raises(Exception, match="already in use"):
+        _call(
+            "add_collaborator",
+            {"id": "kyle", "name": "K2", "role": "x", "cairn": "c"},
+        )
+
+
+def test_get_project_md_returns_content(cairn_root: Path):
+    out = _call("get_project_md", {"cairn": "c"})
+    assert out["exists"] is True
+    # The bundled template's PROJECT.md should have a header.
+    assert out["content"].startswith("#")
+
+
+def test_set_project_md_overwrites_and_commits(cairn_root: Path):
+    new_content = "# Overhauled\n\nFresh content.\n"
+    out = _call(
+        "set_project_md",
+        {"author": "kyle", "content": new_content, "cairn": "c"},
+    )
+    assert "commit_sha" in out
+    # Round-trip via get_project_md
+    got = _call("get_project_md", {"cairn": "c"})
+    assert got["content"] == new_content
+
+
+def test_set_project_md_rejects_unknown_author(cairn_root: Path):
+    with pytest.raises(Exception, match="unknown author"):
+        _call(
+            "set_project_md",
+            {"author": "ghost", "content": "x", "cairn": "c"},
+        )
+
+
+def test_add_open_question_via_mcp(cairn_root: Path):
+    out = _call(
+        "add_open_question",
+        {
+            "raised_by": "kyle",
+            "question": "Should we resample stratified?",
+            "cairn": "c",
+        },
+    )
+    assert out["id"].startswith("Q-")
+    # And it now appears in get_open_questions
+    listed = _call("get_open_questions", {"cairn": "c"})
+    assert len(listed) == 1
+    assert listed[0]["id"] == out["id"]
+
+
+def test_whoami_returns_git_match_suggestion(cairn_root: Path):
+    out = _call("whoami", {})
+    # Test conftest sets GIT_AUTHOR_EMAIL=test@example.com; whoami reads
+    # git config which is whatever the local env reports. Just check shape.
+    assert "git_email" in out
+    assert "suggested_id" in out
+
+
+def test_list_collaborators(cairn_root: Path):
+    out = _call("list_collaborators", {})
+    assert isinstance(out, list)
+    assert any(c["id"] == "kyle" for c in out)
+
+
+def test_list_and_get_decision(cairn_root: Path):
+    _call("add_decision", {"author": "kyle", "text": "first", "cairn": "c"})
+    _call("add_decision", {"author": "kyle", "text": "second resampling change", "cairn": "c"})
+    listed = _call("list_decisions", {})
+    assert len(listed) == 2
+    # Newest first
+    assert listed[0]["decision"] == "second resampling change"
+    # Filter by query
+    filt = _call("list_decisions", {"query": "resampling"})
+    assert len(filt) == 1
+    # Single fetch
+    got = _call("get_decision", {"id": listed[0]["id"]})
+    assert got["id"] == listed[0]["id"]
+
+
+def test_list_and_get_finding(cairn_root: Path):
+    add = _call(
+        "add_finding",
+        {"author": "kyle", "title": "Found a thing", "cairn": "c", "body": "body"},
+    )
+    assert "slug" in add  # new in this commit
+    slug = add["slug"]
+    listed = _call("list_findings", {})
+    assert len(listed) == 1
+    assert listed[0]["slug"] == slug
+    got = _call("get_finding", {"slug": slug})
+    assert got["frontmatter"]["title"] == "Found a thing"
+    assert "body" in got["body"]
+
+
+def test_resolve_open_question(cairn_root: Path):
+    q = _call(
+        "add_open_question",
+        {"raised_by": "kyle", "question": "Should we X?", "cairn": "c"},
+    )
+    d = _call(
+        "add_decision",
+        {"author": "kyle", "text": "Yes, do X.", "cairn": "c", "related": [q["id"]]},
+    )
+    out = _call(
+        "resolve_open_question",
+        {"id": q["id"], "answered_by": d["id"], "actor": "kyle", "cairn": "c"},
+    )
+    assert out["id"] == q["id"]
+    # No longer open
+    open_qs = _call("get_open_questions", {})
+    assert all(qq["status"] != "open" or qq["id"] != q["id"] for qq in open_qs) or (
+        not any(qq["id"] == q["id"] and qq["status"] == "open" for qq in open_qs)
+    )
+
+
+def test_start_and_close_exploration_via_mcp(cairn_root: Path):
+    out = _call(
+        "start_exploration",
+        {"description": "try alt loss", "as_id": "kyle", "cairn": "c"},
+    )
+    assert out["name"] == "kyle/try-alt-loss"
+    closed = _call(
+        "close_exploration",
+        {
+            "name": "kyle/try-alt-loss",
+            "status": "abandoned",
+            "reason": "explored, set aside",
+            "closed_by": "kyle",
+            "cairn": "c",
+        },
+    )
+    assert closed["status"] == "abandoned"
+
+
+def test_unknown_author_message_points_at_mcp_tool(cairn_root: Path):
+    with pytest.raises(Exception, match="add_collaborator"):
+        _call(
+            "add_decision",
+            {"author": "ghost", "text": "no", "cairn": "c"},
+        )
+
+
 def test_get_action_items_filters_by_assignee(cairn_root: Path):
     # Pre-add two actions, one for kyle, one for maria
     runner.invoke(
