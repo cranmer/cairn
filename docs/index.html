@@ -531,7 +531,7 @@
     <h3>Client and server access modes</h3>
     <p>Most of the time you're in <strong>client mode</strong>: a Claude Code session opened wherever real work happens — typically your project's code repository, but in future also a Zoom transcript, a Slack thread, or any other native channel. The cairn is a transparent backend the agent calls into via MCP; you may not even notice it's there. This is the everyday surface.</p>
 
-    <p><strong>Server mode</strong> is for occasional maintenance — opening Claude Code inside the cairn itself for a deep debrief, a structural cleanup, planning the next meeting, or spelunking through accumulated history. Most cairn-using sessions are client-mode; server-mode sessions are deliberate.</p>
+    <p><strong>Server mode</strong> is for occasional maintenance — working inside the cairn directory itself, often through the <code>cairn</code> CLI, for a deep debrief, a structural cleanup, planning the next meeting, or spelunking through accumulated history. Most cairn-using sessions are client-mode; server-mode sessions are deliberate.</p>
 
     <h3>The agent's posture</h3>
     <p>The MCP server's session-start instructions orient the agent to the facilitator-not-stenographer role: capture quietly during conversation, ask focused clarifying questions only on substance, never propose new rituals or ask the user to run CLI commands, debrief at the end of a working block rather than micro-confirming every capture inline. The bundled skills (<code>log-finding</code>, <code>log-decision</code>, <code>log-action</code>, <code>debrief</code>, <code>bootstrap_from_repo</code>, and others) codify the workflows the agent should follow when the corresponding trigger fires in conversation.</p>
