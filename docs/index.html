@@ -462,24 +462,24 @@
 <section>
   <div class="container">
     <div class="section-number">§2 — Two foundational commitments</div>
-    <h2>Where state lives, and where work happens.</h2>
+    <h2>Where work happens, and where state lives.</h2>
 
-    <p class="lead">Cairn's design choices are driven by two paired commitments: one about <em>where state lives</em>, the other about <em>where work happens</em>. Holding both lines simultaneously is what makes the framework feel like a quiet collaborator rather than a new tool to learn.</p>
+    <p class="lead">Cairn's design choices are driven by two paired commitments: one about <em>where work happens</em>, the other about <em>where state lives</em>. Holding both lines simultaneously is what makes the framework feel like a quiet collaborator rather than a new tool to learn.</p>
 
     <div class="principles">
       <div class="principle">
-        <div class="principle-num">01</div>
-        <h4>Substrate as specification.</h4>
-        <p>All canonical project state lives in a git repository — plain markdown and YAML files, inspectable in any editor, versioned by git. Every other component (MCP server, vector indices, dashboards, agent skills) is a derived view that reads from or proposes writes to that substrate. No proprietary backend. Stop-and-rebuild yields identical results.</p>
-      </div>
-      <div class="principle">
-        <div class="principle-num">02</div>
+        <div class="principle-num">1</div>
         <h4>Augmentation, not replacement.</h4>
         <p>Cairn does not redirect how collaborators work. They keep using their normal tools — git, Zoom, Slack, email, paper, conversation — at their normal rhythm. An agent listens in those native channels and writes structured notes into the cairn as a side effect. The agent's role is <em>facilitator, not stenographer</em>: it may ask focused clarifying questions, but it does not propose new rituals or interrupt the user's flow.</p>
       </div>
+      <div class="principle">
+        <div class="principle-num">2</div>
+        <h4>Substrate as specification.</h4>
+        <p>All canonical project state lives in a git repository — plain markdown and YAML files, inspectable in any editor, versioned by git. Every other component (MCP server, vector indices, dashboards, agent skills) is a derived view that reads from or proposes writes to that substrate. No proprietary backend. Stop-and-rebuild yields identical results.</p>
+      </div>
     </div>
 
-    <p>The first commitment says <strong>where</strong>: project memory is files in git, reproducible from itself. The second says <strong>how</strong>: the people doing the work shouldn't have to think about cairn very often. Together they describe what cairn is for, and what other tools in this space typically aren't.</p>
+    <p>The first commitment says <strong>how</strong>: the people doing the work shouldn't have to think about cairn very often. The second says <strong>where</strong>: project memory is files in git, reproducible from itself. Together they describe what cairn is for, and what other tools in this space typically aren't.</p>
 
     <p>A useful test, when designing or evaluating any feature: <em>would a thoughtful new collaborator joining the project naturally be doing this same thing?</em> If yes, an agent should do it transparently. If it requires the user to learn a new verb, adopt a new tool, or perform a new ceremony, it violates the second principle.</p>
   </div>
