@@ -407,6 +407,23 @@ def test_get_skill_rejects_unknown_name(cairn_root: Path):
         _call("get_skill", {"name": "nope"})
 
 
+def test_server_instructions_describe_what_cairn_is(cairn_root: Path):
+    """The server-level instructions text must orient an agent connecting
+    fresh — what cairn is, the four entity types, the facilitator posture,
+    and the bootstrap pointer. Guard against silent regression."""
+    server = build_server()
+    instructions = server.instructions or ""
+    assert "shared project memory" in instructions
+    assert "decisions, findings, open questions, and action items" in instructions
+    # Facilitator posture
+    assert "facilitator" in instructions.lower()
+    assert "note-taker" in instructions.lower()
+    # Bootstrap pointer
+    assert "bootstrap-from-repo" in instructions
+    # Operational tail still present
+    assert "`cairn` parameter" in instructions
+
+
 def test_get_action_items_filters_by_assignee(cairn_root: Path):
     # Pre-add two actions, one for kyle, one for maria
     runner.invoke(
