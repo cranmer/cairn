@@ -174,6 +174,78 @@ def test_set_project_md_rejects_unknown_author(cairn_root: Path):
         )
 
 
+def test_add_collaborator_accepts_unknown_type(cairn_root: Path):
+    """OQ-5 stopgap: `type='unknown'` enables placeholder identities like
+    `repo-history` for bootstrap attribution. `type='group'` is the
+    parallel value for genuine multi-person aggregates (consensus,
+    core-team) — both shipped together as the rename of the original
+    `virtual` value."""
+    out = _call(
+        "add_collaborator",
+        {
+            "id": "repo-history",
+            "name": "Repository history",
+            "role": "bootstrap-attribution placeholder",
+            "type": "unknown",
+        },
+    )
+    assert out["id"] == "repo-history"
+    # Findings can then be attributed to the placeholder collaborator
+    f = _call(
+        "add_finding",
+        {
+            "author": "repo-history",
+            "title": "Extracted from docs/X.md",
+            "body": "Observation derived from repo state.",
+        },
+    )
+    assert "commit_sha" in f
+
+
+def test_add_collaborator_accepts_group_type(cairn_root: Path):
+    out = _call(
+        "add_collaborator",
+        {
+            "id": "consensus",
+            "name": "Project consensus",
+            "role": "group decision-making placeholder",
+            "type": "group",
+        },
+    )
+    assert out["id"] == "consensus"
+
+
+def test_add_collaborator_rejects_virtual_type(cairn_root: Path):
+    """The original `virtual` value was renamed to group/unknown; ensure
+    `virtual` no longer validates so we don't accidentally accept the old
+    name silently."""
+    with pytest.raises(Exception, match=r"(Literal|virtual|validation)"):
+        _call(
+            "add_collaborator",
+            {
+                "id": "ghost-type",
+                "name": "x",
+                "role": "x",
+                "type": "virtual",
+            },
+        )
+
+
+def test_add_open_question_accepts_backdated_date(cairn_root: Path):
+    """Question writes can be backdated like decisions/findings/actions."""
+    out = _call(
+        "add_open_question",
+        {
+            "raised_by": "kyle",
+            "question": "Should we resample stratified?",
+            "date": "2025-09-10T09:00:00Z",
+        },
+    )
+    listed = _call("get_open_questions", {})
+    rec = next(q for q in listed if q["id"] == out["id"])
+    assert rec["date"].startswith("2025-09-10")
+
+
 def test_add_open_question_via_mcp(cairn_root: Path):
     out = _call(
         "add_open_question",

@@ -60,6 +60,39 @@ Confirm with the user once before starting: *"I'll survey `<source-repo>` and pr
    - Source repo + HEAD SHA you anchored against, so future readers can audit.
    - That the cairn now reflects the project's pre-cairn history as best the agent could reconstruct it.
 
+## Ambiguous authorship — *don't default to the project lead*
+
+Many bootstrap-derived findings are observations the agent made from the repo's docs, TODO markers, or general repo state — they aren't authored claims by any single person. For these, **do not silently attribute to the project lead** as a "speaks for the project" default. That hides the bootstrap origin and over-credits one collaborator.
+
+The right pattern, until proper multi-author or meeting-linkage schema lands (see `docs/open-questions.md`):
+
+1. **Register an "unknown" placeholder collaborator first**, once per cairn:
+
+   ```
+   add_collaborator(
+     id="repo-history",
+     name="Repository history",
+     role="bootstrap-attribution placeholder for observations extracted from project docs / commit history",
+     type="unknown",
+   )
+   ```
+
+2. **Attribute ambiguous bootstrap observations to it** rather than to a human:
+
+   ```
+   add_finding(
+     author="repo-history",
+     title="VMEC-JAX is constrained to a fixed-resolution submodule",
+     date="2026-04-16",
+     source_commits=["..."],
+     ...
+   )
+   ```
+
+3. **Attribute observations that DO have a clear authoring human** (e.g., the PR's actual author for an ADR-style decision) to that human. Only use `repo-history` when no single human is plausibly the author.
+
+If the project's working repo has a primary docs maintainer, you can also register them as a human collaborator (with their git email / github handle) and attribute docs-derived findings to them — but only when their authorship of the underlying docs is clear. If you're not sure, `repo-history` is the safer default.
+
 ## What not to do
 
 - **Don't infer decisions the project artifacts don't actually support.** If a PR's title is ambiguous, leave it out or ask. Bootstrap should be conservative; live capture fills in the rest.
