@@ -28,6 +28,10 @@ class FindingFrontmatter(BaseModel):
     slug: FindingSlug
     related: list[EntityId] = Field(default_factory=list)
     exploration: str | None = None
+    # Structured git provenance — optional. Useful for retroactive
+    # bootstrap from a project repo's history.
+    source_commits: list[str] = Field(default_factory=list)
+    source_prs: list[str] = Field(default_factory=list)
 
 
 FINDING_FILENAME = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-(?P<slug>[a-z0-9][a-z0-9-]*)\.md$")

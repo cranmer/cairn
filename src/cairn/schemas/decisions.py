@@ -22,3 +22,8 @@ class Decision(BaseModel):
     supersedes: DecisionId | None = None
     superseded_by: DecisionId | None = None
     related: list[EntityId] = Field(default_factory=list)
+    # Structured git provenance — optional. Useful when a decision was
+    # extracted retroactively from PR/commit history; see ADR-0009
+    # follow-up "Bootstrap & Retroactive Population".
+    source_commits: list[str] = Field(default_factory=list)
+    source_prs: list[str] = Field(default_factory=list)

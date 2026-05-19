@@ -327,6 +327,86 @@ def test_start_exploration_returns_branch_name_and_merge_state(cairn_root: Path)
     assert out["merge_state"] == "active"
 
 
+def test_add_decision_accepts_backdated_date_and_source_refs(cairn_root: Path):
+    """B1 + B2: writes accept explicit date and structured provenance fields."""
+    out = _call(
+        "add_decision",
+        {
+            "author": "kyle",
+            "text": "Use stratified resampling",
+            "context": "Per PR #74",
+            "date": "2025-11-15T14:30:00Z",
+            "source_prs": ["74"],
+            "source_commits": ["62bc70e", "fc0c9b5"],
+        },
+    )
+    assert out["id"] == "D-001"
+    # Round-trip via get_decision
+    d = _call("get_decision", {"id": "D-001"})
+    assert d["date"].startswith("2025-11-15")  # not today
+    assert d["source_prs"] == ["74"]
+    assert "62bc70e" in d["source_commits"]
+
+
+def test_add_finding_accepts_backdated_date(cairn_root: Path):
+    out = _call(
+        "add_finding",
+        {
+            "author": "kyle",
+            "title": "Backdated learning",
+            "body": "We discovered X.",
+            "date": "2026-01-15T12:00:00Z",
+            "source_prs": ["12"],
+        },
+    )
+    # File should be named after the backdated date, not today
+    assert out["date"] == "2026-01-15"
+    assert out["path"].startswith("knowledge/findings/2026-01-15-")
+
+
+def test_add_decision_rejects_unparseable_date(cairn_root: Path):
+    with pytest.raises(Exception, match="invalid date"):
+        _call(
+            "add_decision",
+            {"author": "kyle", "text": "x", "date": "not a date"},
+        )
+
+
+def test_status_suggests_bootstrap_when_empty(cairn_root: Path):
+    out = _call("status", {})
+    assert out.get("suggested_next") is not None
+    assert "bootstrap" in out["suggested_next"].lower()
+
+
+def test_status_clears_suggestion_after_first_write(cairn_root: Path):
+    _call("add_decision", {"author": "kyle", "text": "first"})
+    out = _call("status", {})
+    assert out.get("suggested_next") is None
+
+
+def test_list_skills_returns_bundled_skills(cairn_root: Path):
+    out = _call("list_skills", {})
+    names = {s["name"] for s in out}
+    # Bundled skills shipped with the template
+    assert "orient" in names
+    assert "bootstrap-from-repo" in names
+    assert "log-finding" in names
+    # Each has a description
+    for s in out:
+        assert s["description"] is None or isinstance(s["description"], str)
+
+
+def test_get_skill_returns_full_content(cairn_root: Path):
+    out = _call("get_skill", {"name": "bootstrap-from-repo"})
+    assert out["name"] == "bootstrap-from-repo"
+    assert "# Bootstrap a cairn from a project repository" in out["content"]
+
+
+def test_get_skill_rejects_unknown_name(cairn_root: Path):
+    with pytest.raises(Exception, match="no skill named 'nope'"):
+        _call("get_skill", {"name": "nope"})
+
+
 def test_get_action_items_filters_by_assignee(cairn_root: Path):
     # Pre-add two actions, one for kyle, one for maria
     runner.invoke(

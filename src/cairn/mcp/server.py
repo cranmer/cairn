@@ -112,6 +112,22 @@ def _suggest_collaborator_match(paths: CairnPaths, collabs: list) -> dict[str, A
     return {"git_email": git_email, "suggested_id": suggested_id}
 
 
+def _parse_date_param(value: str | None) -> datetime:
+    """Parse an optional ISO 8601 date string; default to now (UTC)."""
+    if value is None:
+        return datetime.now(timezone.utc).replace(microsecond=0)
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise RegistryError(
+            f"invalid date '{value}': expected ISO 8601 (e.g. '2026-05-19T08:34:00Z'). {exc}"
+        ) from None
+    if parsed.tzinfo is None:
+        # Naive datetime — assume UTC.
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).replace(microsecond=0)
+
+
 def _validate_related(paths: CairnPaths, related: list[str]) -> None:
     if not related:
         return
@@ -180,7 +196,23 @@ def build_server() -> FastMCP:
         state = state_for_branch(paths, None)
         snap = build_status(paths, state, branch="current")
         import json
-        return json.loads(render_json(snap))
+        result = json.loads(render_json(snap))
+        # When the cairn is essentially empty, hint that the
+        # bootstrap-from-repo skill may apply.
+        is_empty = (
+            result.get("decision_count", 0) == 0
+            and result.get("open_question_count", 0) == 0
+            and result.get("incomplete_action_count", 0) == 0
+            and result.get("finding_count", 0) == 0
+        )
+        result["suggested_next"] = (
+            "This cairn has no decisions, findings, questions, or actions yet. "
+            "If it sits alongside an existing code repo, consider running the "
+            "`bootstrap-from-repo` skill (see `list_skills` / `get_skill`) "
+            "before live capture to seed the cairn from the repo's history."
+            if is_empty else None
+        )
+        return result
 
     # ---- Reads ------------------------------------------------------------
 
@@ -255,6 +287,9 @@ def build_server() -> FastMCP:
         context: str | None = None,
         related: list[str] | None = None,
         supersedes: str | None = None,
+        date: str | None = None,
+        source_commits: list[str] | None = None,
+        source_prs: list[str] | None = None,
     ) -> dict[str, Any]:
         entry, paths = _resolve(cairn)
         related = related or []
@@ -267,17 +302,19 @@ def build_server() -> FastMCP:
             raise RegistryError(f"--supersedes refers to unknown decision: {supersedes}")
 
         new_id = next_id("D", state.decision_ids())
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        when = _parse_date_param(date)
         try:
             new_decision = Decision.model_validate(
                 {
                     "id": new_id,
-                    "date": now,
+                    "date": when,
                     "author": author,
                     "decision": text,
                     "context": context,
                     "related": related,
                     "supersedes": supersedes,
+                    "source_commits": source_commits or [],
+                    "source_prs": source_prs or [],
                 }
             )
         except ValidationError as exc:
@@ -326,6 +363,9 @@ def build_server() -> FastMCP:
         body: str | None = None,
         related: list[str] | None = None,
         slug: str | None = None,
+        date: str | None = None,
+        source_commits: list[str] | None = None,
+        source_prs: list[str] | None = None,
     ) -> dict[str, Any]:
         entry, paths = _resolve(cairn)
         related = related or []
@@ -339,8 +379,8 @@ def build_server() -> FastMCP:
             exploration = None
 
         final_slug = slug or _slugify(title)
-        now = datetime.now(timezone.utc).replace(microsecond=0)
-        today = now.date().isoformat()
+        when = _parse_date_param(date)
+        today = when.date().isoformat()
         filename = f"{today}-{final_slug}.md"
         if not FINDING_FILENAME.match(filename):
             raise RegistryError(
@@ -354,12 +394,14 @@ def build_server() -> FastMCP:
         try:
             fm = FindingFrontmatter.model_validate(
                 {
-                    "date": now,
+                    "date": when,
                     "author": author,
                     "title": title,
                     "slug": final_slug,
                     "related": related,
                     "exploration": exploration,
+                    "source_commits": source_commits or [],
+                    "source_prs": source_prs or [],
                 }
             )
         except ValidationError as exc:
@@ -404,6 +446,7 @@ def build_server() -> FastMCP:
         cairn: str | None = None,
         due_date: str | None = None,
         related: list[str] | None = None,
+        created: str | None = None,
     ) -> dict[str, Any]:
         entry, paths = _resolve(cairn)
         related = related or []
@@ -412,12 +455,12 @@ def build_server() -> FastMCP:
 
         state = load_state(paths)
         new_id = next_id("A", state.action_ids())
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        when = _parse_date_param(created)
         try:
             new_action = ActionItem.model_validate(
                 {
                     "id": new_id,
-                    "created": now,
+                    "created": when,
                     "assignee": assignee,
                     "text": text,
                     "due_date": due_date,
@@ -1097,7 +1140,73 @@ def build_server() -> FastMCP:
             "commit_sha": sha[:12],
         }
 
+    # ---- Skills discoverability -------------------------------------------
+
+    @mcp.tool(
+        description=(
+            "List the procedural skills shipped in this cairn (under "
+            "`skills/<name>/SKILL.md`). Each skill is a markdown procedure "
+            "the agent should follow when its trigger fires — for example, "
+            "`bootstrap-from-repo` (seed a cairn from an existing code "
+            "repo), `orient` (read PROJECT.md + status at session start), "
+            "`debrief` (end-of-session batch capture)."
+        )
+    )
+    def list_skills(cairn: str | None = None) -> list[dict[str, Any]]:
+        _, paths = _resolve(cairn)
+        out: list[dict[str, Any]] = []
+        skills_dir = paths.skills
+        if not skills_dir.is_dir():
+            return out
+        for child in sorted(skills_dir.iterdir()):
+            skill_md = child / "SKILL.md"
+            if not skill_md.is_file():
+                continue
+            text = skill_md.read_text(encoding="utf-8")
+            description = _extract_skill_description(text)
+            out.append({"name": child.name, "description": description})
+        return out
+
+    @mcp.tool(
+        description=(
+            "Return a skill's full procedural prose by name. Pair with "
+            "list_skills to discover what's available. Reading a skill "
+            "before triggering its workflow gives the agent guidance on "
+            "ordering, what fields to populate, and which other tools to "
+            "compose."
+        )
+    )
+    def get_skill(name: str, cairn: str | None = None) -> dict[str, Any]:
+        _, paths = _resolve(cairn)
+        skill_md = paths.skills / name / "SKILL.md"
+        if not skill_md.is_file():
+            raise RegistryError(
+                f"no skill named '{name}' (looked for {skill_md}). "
+                f"Use `list_skills` to see what's available."
+            )
+        text = skill_md.read_text(encoding="utf-8")
+        return {
+            "name": name,
+            "description": _extract_skill_description(text),
+            "content": text,
+        }
+
     return mcp
+
+
+def _extract_skill_description(text: str) -> str | None:
+    """Pull the `description:` field from a SKILL.md's YAML frontmatter, if any."""
+    if not text.startswith("---"):
+        return None
+    end = text.find("---", 3)
+    if end < 0:
+        return None
+    frontmatter = text[3:end]
+    # Cheap line scan — avoid pulling in yaml here.
+    for line in frontmatter.splitlines():
+        if line.startswith("description:"):
+            return line.split(":", 1)[1].strip().strip("'\"")
+    return None
 
 
 def _ensure_registry_loadable() -> None:
