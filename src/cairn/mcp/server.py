@@ -572,7 +572,17 @@ def build_server() -> FastMCP:
         description=(
             "Register a new collaborator (mirrors `cairn collaborator add`). "
             "Required for any cairn the first time it's used and whenever a "
-            "new contributor joins."
+            "new contributor joins.\n\n"
+            "`type` accepts:\n"
+            "- `human` (default) — a person, attributed via git authorship.\n"
+            "- `ai-collaborator` — a configured AI agent with its own "
+            "identity (literature monitor, critique agent, etc.).\n"
+            "- `virtual` — a placeholder identity for observations that "
+            "don't have a single authoring human or AI. Use for "
+            "retroactive bootstrap attribution (`id=\"repo-history\"` "
+            "for findings extracted from docs / TODO markers / commit "
+            "history) and for consensus / group / meeting-derived "
+            "authorship until proper multi-author schema lands."
         )
     )
     def add_collaborator(

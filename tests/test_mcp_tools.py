@@ -174,6 +174,31 @@ def test_set_project_md_rejects_unknown_author(cairn_root: Path):
         )
 
 
+def test_add_collaborator_accepts_virtual_type(cairn_root: Path):
+    """OQ-5 stopgap: `type='virtual'` enables placeholder identities like
+    `repo-history` for bootstrap attribution."""
+    out = _call(
+        "add_collaborator",
+        {
+            "id": "repo-history",
+            "name": "Repository history",
+            "role": "bootstrap-attribution placeholder",
+            "type": "virtual",
+        },
+    )
+    assert out["id"] == "repo-history"
+    # Findings can then be attributed to the virtual collaborator
+    f = _call(
+        "add_finding",
+        {
+            "author": "repo-history",
+            "title": "Extracted from docs/X.md",
+            "body": "Observation derived from repo state.",
+        },
+    )
+    assert "commit_sha" in f
+
+
 def test_add_open_question_accepts_backdated_date(cairn_root: Path):
     """Question writes can be backdated like decisions/findings/actions."""
     out = _call(

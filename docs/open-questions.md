@@ -89,6 +89,30 @@ The StellaForge UX experiment exercised exactly this workflow: an agent surveyed
 
 ---
 
+## OQ-5 — Multi-author / group / meeting-derived attribution on cairn entities
+
+**Tension.** Today's schema attributes every decision / finding / action / open question to a **single** collaborator id (`author`, `raised_by`, `assignee`). Real captures often have ambiguous or shared authorship:
+
+- A decision made by a pair-coding session.
+- A finding observed by an agent from a project's docs, with no single human author.
+- A decision reached at a meeting whose attendees are the group of three people who were there.
+
+UX testing of the `bootstrap_from_repo` skill surfaced this concretely: five findings derived from `docs/potential_issues.md` and the `stellarator_workflow/` submodule had no plausible single author; the agent defaulted to the project lead and over-credited them. Until this is resolved, **OQ-5's stopgap is `type="virtual"` collaborators** (`id="repo-history"`, etc.) — single-author schema, but the "author" is a clearly-labeled placeholder. Shipped 2026-05-19 alongside this OQ.
+
+**Three options, picked from a live agent discussion:**
+
+| | Pros | Cons |
+|---|---|---|
+| **1. Reserved pseudo-author IDs via `type="virtual"`** *(today's stopgap)* | Zero schema-shape change beyond extending one Literal. Works with the existing `author: str` plumbing in every tool, in `list_decisions(author=…)` filters, in git commit messages. Single source of truth: collaborators.yaml. | Cosmetic — the schema still says "this entity has one author"; we're just using a placeholder that means "no single human". Doesn't help with the pair-coding case (you'd have to choose which collaborator id to use). |
+| **2. Multi-author field** (`authors: list[str]` or `author: str \| list[str]`) | Direct way to record pair coding (`authors=["kyle", "maria"]`) and group consensus (`authors=["kyle", "maria", "rkhashmani"]`). Each contributor is properly credited. | Schema change ripples to display logic in `status`, `list_decisions`, every git commit message, the `author` filter on read tools. Backwards-compat needs `author: str \| list[str]` (Pydantic union) and matching plumbing everywhere. Adding "author IS the bottleneck for cairn renaming" implications. |
+| **3. Meeting / event linkage** (single `author` + optional `from_meeting: str` or `derived_from: <event-id>`) | Plays better with the existing meetings concept (`knowledge/meetings/`). Multi-author is *derived* from the linked event's attendee list. Composable with future event types (Zoom transcripts, Slack threads). | Requires `add_meeting` / `get_meeting` / `list_meetings` MCP tools that don't exist yet. Reading "who authored this" requires an extra hop. Doesn't address pair-coding outside a "meeting." |
+
+**Live evidence.** The agent's spontaneous suggestion (from the StellaForge bootstrap session) named all three approaches and leaned toward (1) as the immediate ship + (3) as the architecturally-coherent end state. The maintainer (this repo's lead) endorsed (1) shipping today and capturing the rest for design discussion.
+
+**Status.** Option 1 ✅ shipped (`type="virtual"` extension + `bootstrap_from_repo` skill's "Ambiguous authorship" guidance + `add_collaborator` docstring update). Options 2 and 3 are **open**. Resolution path: pick one ADR-grade approach after live use of `repo-history`-style virtuals reveals whether the placeholder approach is enough, or whether real multi-author capture is the limiting factor.
+
+---
+
 ## How to add a new open question
 
 When you encounter a design tension that isn't ready to resolve:
