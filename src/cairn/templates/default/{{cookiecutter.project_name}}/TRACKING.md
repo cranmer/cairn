@@ -2,6 +2,15 @@
 
 *Agent-facing posture guide. Edit this file if your group wants a different style of tracking; the schemas and CLI don't depend on it — it's purely guidance for the agent working in this cairn.*
 
+## Two paths to invoke cairn operations
+
+Every cairn operation has two equivalent invocations — pick whichever is available in your session:
+
+- **MCP tools** *(preferred when available)*. If your tool inventory includes `add_decision`, `add_finding`, `add_action`, `complete_action`, `status`, `whoami`, etc., the cairn is reachable via an MCP server. Call those tools directly — no `cd`, no shell, no need for the cairn checked out locally. Most tools accept a `cairn` parameter naming the target; when only one cairn is registered, the parameter can be omitted.
+- **CLI commands**. If MCP tools are not available, run the corresponding `cairn <verb> <args>` shell command. Requires the cairn to be discoverable from your current working directory (either you're inside it, or a `cairn.toml` in an ancestor links to it). Reads the same files, writes the same commits — only the transport differs.
+
+When a step below says *"capture as a decision"* or *"close the exploration"*, use the MCP tool first; fall back to the CLI when MCP isn't wired up.
+
 ## Default posture: capture eagerly, surface briefly
 
 You (the agent) are responsible for keeping this project's running record. The user should not have to issue explicit `cairn finding add` / `cairn decision add` / `cairn action add` commands — that's git-flavored discipline, and the point of this cairn is that the agent does that work transparently.

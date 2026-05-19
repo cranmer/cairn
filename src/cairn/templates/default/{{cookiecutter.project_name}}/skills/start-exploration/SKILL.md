@@ -15,7 +15,9 @@ A *cairn exploration* is an optional augmentation for tracking an alternative li
 
 2. **Phrase the goal as a short kebab-case description** (3–6 words). Examples: "try alt loss function", "redo experiment without outliers", "explore causal forest variant". Keep it descriptive enough that someone reading the explorations list later understands the purpose without context.
 
-3. **Run the command**:
+3. **Invoke the action.** Two equivalent paths (see TRACKING.md):
+   - **MCP** *(preferred when available)*: call `start_exploration(description="...", as_id="<user-id>")`. The Tier-1 MCP server may not expose this tool yet; fall back to the CLI in that case.
+   - **CLI**:
 
    ```sh
    cairn exploration start "<short description>"

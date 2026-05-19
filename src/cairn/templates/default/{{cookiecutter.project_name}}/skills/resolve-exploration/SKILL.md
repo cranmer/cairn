@@ -33,7 +33,9 @@ If you're not sure whether the user means *close* or just *switch away*, ask. An
    git checkout main
    ```
 
-5. **Run the command**:
+5. **Invoke the action.** Two equivalent paths (see TRACKING.md):
+   - **MCP** *(preferred when available)*: call `close_exploration(name="<owner>/<slug>", status="merged"|"abandoned", reason="...", closed_by="<id>")`. The Tier-1 MCP server may not expose this tool yet; fall back to the CLI in that case.
+   - **CLI**:
 
    ```sh
    cairn exploration close <owner>/<slug> \
