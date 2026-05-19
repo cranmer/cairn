@@ -37,7 +37,9 @@ from ..io.state_io import (
     load_questions,
     load_state,
     write_actions,
+    write_collaborators,
     write_decisions,
+    write_questions,
 )
 from ..paths import MARKER_FILE, CairnPaths
 from ..registry import (
@@ -46,7 +48,7 @@ from ..registry import (
     load_registry,
     resolve_single_or_named,
 )
-from ..schemas import ActionItem, Decision, FindingFrontmatter
+from ..schemas import ActionItem, Collaborator, Decision, FindingFrontmatter, OpenQuestion
 from ..schemas.findings import FINDING_FILENAME
 from ..status.render import render_json
 from ..status.snapshot import build_status, state_for_branch
@@ -385,6 +387,107 @@ def build_server() -> FastMCP:
         return {
             "cairn": entry.name,
             "id": id,
+            "commit_sha": sha[:12],
+        }
+
+    @mcp.tool(
+        description=(
+            "Register a new collaborator (mirrors `cairn collaborator add`). "
+            "Required for any cairn the first time it's used and whenever a "
+            "new contributor joins."
+        )
+    )
+    def add_collaborator(
+        id: str,
+        name: str,
+        role: str,
+        cairn: str | None = None,
+        type: str = "human",
+        email: str | None = None,
+        github: str | None = None,
+        expertise: list[str] | None = None,
+        current_focus: str | None = None,
+        notes: str | None = None,
+    ) -> dict[str, Any]:
+        entry, paths = _resolve(cairn)
+        existing = load_collaborators(paths)
+        if any(c.id == id for c in existing):
+            raise RegistryError(f"collaborator id '{id}' is already in use")
+        data: dict[str, Any] = {
+            "id": id,
+            "name": name,
+            "role": role,
+            "type": type,
+            "email": email,
+            "github": github,
+            "expertise": expertise or [],
+            "current_focus": current_focus,
+            "notes": notes,
+        }
+        data = {k: v for k, v in data.items() if v not in (None, [], "")}
+        try:
+            new_collab = Collaborator.model_validate(data)
+        except ValidationError as exc:
+            raise RegistryError(f"schema validation failed: {exc}") from None
+        combined = [*existing, new_collab]
+        write_collaborators(paths, combined)
+        repo = Repo(paths.root)
+        sha = commit(
+            repo,
+            [paths.collaborators_yaml],
+            message=f"Add collaborator '{id}'",
+            author=get_user_identity(repo),
+        )
+        return {
+            "cairn": entry.name,
+            "id": id,
+            "commit_sha": sha[:12],
+        }
+
+    @mcp.tool(
+        description=(
+            "Record an open question (mirrors a CLI command not yet shipped). "
+            "Use when the user surfaces something to investigate or decide."
+        )
+    )
+    def add_open_question(
+        raised_by: str,
+        question: str,
+        cairn: str | None = None,
+        related: list[str] | None = None,
+    ) -> dict[str, Any]:
+        entry, paths = _resolve(cairn)
+        related = related or []
+        _validate_author(paths, raised_by)
+        _validate_related(paths, related)
+        state = load_state(paths)
+        new_id = next_id("Q", state.question_ids())
+        now = datetime.now(timezone.utc).replace(microsecond=0)
+        try:
+            new_q = OpenQuestion.model_validate(
+                {
+                    "id": new_id,
+                    "raised_by": raised_by,
+                    "date": now,
+                    "question": question,
+                    "status": "open",
+                    "related": related,
+                }
+            )
+        except ValidationError as exc:
+            raise RegistryError(f"schema validation failed: {exc}") from None
+        questions = [*load_questions(paths), new_q]
+        write_questions(paths, questions)
+        repo = Repo(paths.root)
+        sha = commit(
+            repo,
+            [paths.open_questions_yaml],
+            message=f"{new_id}: {question[:60]}",
+            author=get_user_identity(repo),
+        )
+        return {
+            "cairn": entry.name,
+            "id": new_id,
             "commit_sha": sha[:12],
         }
 

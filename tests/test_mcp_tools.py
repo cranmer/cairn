@@ -118,6 +118,51 @@ def test_get_open_questions_returns_list(cairn_root: Path):
     assert out == []
 
 
+def test_add_collaborator_via_mcp(cairn_root: Path):
+    out = _call(
+        "add_collaborator",
+        {
+            "id": "maria",
+            "name": "Maria Santos",
+            "role": "methods",
+            "cairn": "c",
+            "email": "maria@example.com",
+        },
+    )
+    assert out["id"] == "maria"
+    assert out["cairn"] == "c"
+    # And a subsequent decision authored by maria succeeds (the new id is known)
+    dec = _call(
+        "add_decision",
+        {"author": "maria", "text": "method change", "cairn": "c"},
+    )
+    assert dec["id"].startswith("D-")
+
+
+def test_add_collaborator_rejects_duplicate_id(cairn_root: Path):
+    with pytest.raises(Exception, match="already in use"):
+        _call(
+            "add_collaborator",
+            {"id": "kyle", "name": "K2", "role": "x", "cairn": "c"},
+        )
+
+
+def test_add_open_question_via_mcp(cairn_root: Path):
+    out = _call(
+        "add_open_question",
+        {
+            "raised_by": "kyle",
+            "question": "Should we resample stratified?",
+            "cairn": "c",
+        },
+    )
+    assert out["id"].startswith("Q-")
+    # And it now appears in get_open_questions
+    listed = _call("get_open_questions", {"cairn": "c"})
+    assert len(listed) == 1
+    assert listed[0]["id"] == out["id"]
+
+
 def test_get_action_items_filters_by_assignee(cairn_root: Path):
     # Pre-add two actions, one for kyle, one for maria
     runner.invoke(
