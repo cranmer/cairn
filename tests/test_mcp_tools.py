@@ -147,6 +147,33 @@ def test_add_collaborator_rejects_duplicate_id(cairn_root: Path):
         )
 
 
+def test_get_project_md_returns_content(cairn_root: Path):
+    out = _call("get_project_md", {"cairn": "c"})
+    assert out["exists"] is True
+    # The bundled template's PROJECT.md should have a header.
+    assert out["content"].startswith("#")
+
+
+def test_set_project_md_overwrites_and_commits(cairn_root: Path):
+    new_content = "# Overhauled\n\nFresh content.\n"
+    out = _call(
+        "set_project_md",
+        {"author": "kyle", "content": new_content, "cairn": "c"},
+    )
+    assert "commit_sha" in out
+    # Round-trip via get_project_md
+    got = _call("get_project_md", {"cairn": "c"})
+    assert got["content"] == new_content
+
+
+def test_set_project_md_rejects_unknown_author(cairn_root: Path):
+    with pytest.raises(Exception, match="unknown author"):
+        _call(
+            "set_project_md",
+            {"author": "ghost", "content": "x", "cairn": "c"},
+        )
+
+
 def test_add_open_question_via_mcp(cairn_root: Path):
     out = _call(
         "add_open_question",

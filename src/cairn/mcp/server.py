@@ -491,6 +491,56 @@ def build_server() -> FastMCP:
             "commit_sha": sha[:12],
         }
 
+    @mcp.tool(
+        description=(
+            "Return the cairn's PROJECT.md content (project overview, current "
+            "focus, related repositories, etc.)."
+        )
+    )
+    def get_project_md(cairn: str | None = None) -> dict[str, Any]:
+        entry, paths = _resolve(cairn)
+        if not paths.project_md.is_file():
+            return {"cairn": entry.name, "exists": False, "content": ""}
+        return {
+            "cairn": entry.name,
+            "exists": True,
+            "content": paths.project_md.read_text(encoding="utf-8"),
+        }
+
+    @mcp.tool(
+        description=(
+            "Overwrite the cairn's PROJECT.md with new content. Commits the "
+            "change attributed to the given author. Use the standard "
+            "read-modify-write pattern: call get_project_md first, modify the "
+            "content locally, then call this. There is no section-level edit "
+            "API — overwrite is intentional so the agent always reasons about "
+            "the whole document."
+        )
+    )
+    def set_project_md(
+        author: str,
+        content: str,
+        cairn: str | None = None,
+        message: str | None = None,
+    ) -> dict[str, Any]:
+        entry, paths = _resolve(cairn)
+        _validate_author(paths, author)
+        if not content.endswith("\n"):
+            content += "\n"
+        paths.project_md.write_text(content, encoding="utf-8")
+        repo = Repo(paths.root)
+        sha = commit(
+            repo,
+            [paths.project_md],
+            message=message or "Update PROJECT.md",
+            author=get_user_identity(repo),
+        )
+        return {
+            "cairn": entry.name,
+            "path": str(paths.project_md.relative_to(paths.root)),
+            "commit_sha": sha[:12],
+        }
+
     return mcp
 
 

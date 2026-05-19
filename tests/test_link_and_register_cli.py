@@ -158,6 +158,26 @@ def test_register_reminds_to_wire_up_mcp(
     assert "claude mcp add cairn -- cairn mcp" in res.output
 
 
+def test_orient_prints_project_md_and_status(
+    isolated_xdg: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """`cairn orient` shows PROJECT.md content and the status block."""
+    monkeypatch.chdir(isolated_xdg)
+    runner.invoke(app, ["init", "ori", "--no-input"], catch_exceptions=False)
+    monkeypatch.chdir(isolated_xdg / "ori")
+    runner.invoke(
+        app, ["collaborator", "add", "--id", "kyle", "--name", "K", "--role", "PI"]
+    )
+    res = runner.invoke(app, ["orient"], catch_exceptions=False)
+    assert res.exit_code == 0, res.output
+    # PROJECT.md content (starts with a markdown header in the bundled template)
+    assert "#" in res.output
+    # Status content
+    assert "Collaborators:" in res.output
+    # Separator between the two
+    assert "-" * 20 in res.output
+
+
 def test_link_reminds_to_wire_up_mcp(
     isolated_xdg: Path, monkeypatch: pytest.MonkeyPatch
 ):
