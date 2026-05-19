@@ -142,3 +142,36 @@ def test_init_emits_next_steps_message(
     assert "cairn collaborator add" in res.output
     assert "cairn register" in res.output
     assert "cairn link" in res.output
+    assert "claude mcp add cairn -- cairn mcp" in res.output
+
+
+def test_register_reminds_to_wire_up_mcp(
+    isolated_xdg: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """`cairn register` reminds the user to add the MCP server to Claude Code."""
+    target = isolated_xdg / "fresh"
+    monkeypatch.chdir(isolated_xdg)
+    res = runner.invoke(
+        app, ["register", "fresh", str(target), "--init"], catch_exceptions=False
+    )
+    assert res.exit_code == 0, res.output
+    assert "claude mcp add cairn -- cairn mcp" in res.output
+
+
+def test_link_reminds_to_wire_up_mcp(
+    isolated_xdg: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """`cairn link --name ...` reminds the user to add the MCP server to Claude Code."""
+    cairn_dir = isolated_xdg / "demo-cairn"
+    monkeypatch.chdir(isolated_xdg)
+    runner.invoke(
+        app, ["register", "demo", str(cairn_dir), "--init"], catch_exceptions=False
+    )
+    project = isolated_xdg / "my-project"
+    project.mkdir()
+    monkeypatch.chdir(project)
+    res = runner.invoke(
+        app, ["link", "--name", "demo"], catch_exceptions=False
+    )
+    assert res.exit_code == 0, res.output
+    assert "claude mcp add cairn -- cairn mcp" in res.output

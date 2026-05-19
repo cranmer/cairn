@@ -80,6 +80,13 @@ def link(
             f"Linked {project} → cairn '{name}' (at {existing.path}). "
             f"Wrote {written}."
         )
+        typer.echo(
+            "\nFor agents in Claude Code sessions opened here to reach the "
+            "cairn, the cairn MCP server must be registered with Claude Code "
+            "(one-time, ever):\n"
+            "  claude mcp add cairn -- cairn mcp\n"
+            "Then restart any open Claude Code sessions to pick it up."
+        )
         return
 
     # No --name: link by relative path. Requires cwd-walk to find the cairn.
@@ -116,6 +123,13 @@ def link(
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from None
     typer.echo(f"Linked {project} → {cairn_paths.root}. Wrote {written}.")
+    typer.echo(
+        "\nFor agents in Claude Code sessions opened here to reach the "
+        "cairn, the cairn MCP server must be registered with Claude Code "
+        "(one-time, ever):\n"
+        "  claude mcp add cairn -- cairn mcp\n"
+        "Then restart any open Claude Code sessions to pick it up."
+    )
 
 
 # Silence unused-import linting (resolve_cairn imported for potential future use).

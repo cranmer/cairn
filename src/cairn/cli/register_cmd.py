@@ -87,6 +87,12 @@ def register(
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from None
     typer.echo(f"Registered '{name}' → {resolved} (registry: {registry_path()}).")
+    typer.echo(
+        "\nIf you haven't yet, register the cairn MCP server with Claude Code "
+        "(one-time, ever — same command regardless of how many cairns you have):\n"
+        "  claude mcp add cairn -- cairn mcp\n"
+        "Then restart any open Claude Code sessions to pick it up."
+    )
 
 
 def _init_cairn_at(path: Path) -> None:
