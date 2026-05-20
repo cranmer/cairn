@@ -1,8 +1,8 @@
 # Quickstart
 
-A five-minute path from a clean machine to a working cairn that your Claude Code sessions can read from and write to.
+A five-minute path from a clean machine to a working cairn that your Claude Code sessions can read from and write to. Written for a human reader following along at the terminal.
 
-This is the canonical setup doc for both humans and agents. If you're an agent reading this: a human pasted this file to you. Follow the steps from your end — the user shouldn't have to drive each step, but should be asked to confirm at the ★ marks.
+**Want your agent to do this for you?** See [`AGENT-BOOTSTRAP.md`](AGENT-BOOTSTRAP.md). Paste that file into a fresh Claude Code session and the agent will install Cairn, scaffold a new cairn, and register you as the first collaborator — pausing for your confirmation at each major step.
 
 ## What you're going to do
 
@@ -100,10 +100,12 @@ The bootstrap step itself is an agent action, not a human one. You drive it by a
 ## Step 4 — Register the MCP server with Claude Code (one-time, ever) ★
 
 ```sh
-claude mcp add cairn cairn mcp
+claude mcp add --scope user cairn -- cairn mcp
 ```
 
 That's it. Same command no matter how many cairns you have — one MCP server serves all of them (per ADR-0010). Each MCP tool accepts a `cairn` parameter naming which one to operate on; when you have only one registered, that parameter defaults.
+
+The `--scope user` flag is what makes this "one-time, ever": it registers the MCP server for all your Claude Code sessions, not just the current directory. The `--` separator passes the rest of the line to `cairn` rather than letting `claude mcp add` try to parse it.
 
 Confirm:
 

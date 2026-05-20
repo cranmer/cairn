@@ -549,7 +549,7 @@
     <ol>
       <li><strong>Install</strong>: <code>pipx install 'cairn[mcp] @ git+https://github.com/cranmer/cairn'</code>.</li>
       <li><strong>Register the cairn</strong>: <code>cairn register myproject ./myproject-cairn --init</code> (scaffolds and registers in one step).</li>
-      <li><strong>Wire MCP into Claude Code</strong>: <code>claude mcp add cairn cairn mcp</code>. One-time, ever — same command no matter how many cairns you have.</li>
+      <li><strong>Wire MCP into Claude Code</strong>: <code>claude mcp add --scope user cairn -- cairn mcp</code>. One-time, ever — same command no matter how many cairns you have.</li>
       <li><strong>Pair your project repo</strong>: <code>cd myproject &amp;&amp; cairn link --name myproject</code>.</li>
       <li><strong>Open a Claude Code session</strong> in your project repo and ask the agent <em>"what cairn tools do you have?"</em> to confirm. For a project with existing history, follow up with <em>"please bootstrap this cairn from this project repo"</em> and the agent will follow the <code>bootstrap_from_repo</code> skill.</li>
     </ol>
