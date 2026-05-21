@@ -143,6 +143,49 @@ The `cairn` Python package is the canonical tooling for creating and managing ca
 - Pairing a project repo with a cairn — so agents working inside the project repo can discover which cairn it belongs to — is a separate, **opt-in** action the user takes after bootstrap (e.g., a `cairn link <project-repo>` command), never a side effect of `cairn init`. When the user explicitly invokes it, Cairn may write a single small pointer file (e.g., `cairn.toml`) at the project repo root recording the cairn's location (local path, or in future an MCP endpoint). This is the only circumstance under which Cairn writes into a project repo, and it is always user-initiated.
 - The first collaborator registration (Step 5 of AGENT-BOOTSTRAP) and the rest of the standard bootstrap flow are unchanged.
 
+### US-P-11: Serve a cairn (or many) over HTTP
+
+**Actor**: Operator hosting an MCP server for themselves or a group
+**Story**: As an operator, I want to expose the MCP server over HTTP so multiple Claude Code sessions and background agents can share one running server.
+
+**Expected behavior**
+- `cairn mcp --transport {stdio,streamable-http,sse}` selects the transport; default stays `stdio` so existing `claude mcp add cairn cairn mcp` setups continue to work unchanged. HTTP is strictly opt-in.
+- HTTP mode accepts `--host` (default `127.0.0.1`), `--port` (default `8765`), `--path` (default `/mcp`), forwarded to FastMCP.
+- The tool surface (Tier-1/2/3) is **identical** across transports — same names, parameters, and return shapes. Clients move between stdio and HTTP by changing connection config only.
+- Default binding `127.0.0.1` keeps the trust surface the same as stdio. `0.0.0.0` is allowed but the flag help names the trade-off.
+- Cairn ships no built-in auth in this slice. The `author` parameter remains **attribution, not authentication**.
+- A typo'd `--transport` value fails fast with a CLI error before the MCP import, not an SDK traceback.
+
+### US-P-12: Pair a project repo with a remote cairn
+
+**Actor**: Collaborator on a project whose cairn is served by an HTTP MCP node off-machine
+**Story**: As a user with a project repo and a remote MCP server's URL, I want to record the pairing in the project repo so my agent (and my CLI) can reach the right cairn without re-configuring.
+
+**Expected behavior**
+- `cairn link --endpoint <url> --name <cairn>` writes a remote-mode `cairn.toml` and prints client-neutral pairing info (endpoint + cairn name + auth-header hint) followed by Claude Code bootstrap hints.
+- `cairn.toml`'s validator supports three explicit modes:
+
+  | Mode | Fields | Resolves to |
+  |---|---|---|
+  | local-path | `path = "..."` | filesystem path |
+  | local-registry | `name = "..."` | user registry lookup |
+  | remote MCP | `endpoint = "..."` + `name = "..."` | HTTP MCP server |
+
+- Invalid combinations (rejected with actionable errors): empty; `name` + `path`; `endpoint` + `path`; `endpoint` alone (without `name`).
+- `cairn link --endpoint <url>` probes reachability before writing; `--no-probe` skips this for offline pairing.
+- Pairing travels with the repo. Credentials do not.
+
+### US-P-13: Write to a remote cairn from the CLI
+
+**Actor**: Human collaborator in a project repo paired with a remote cairn
+**Story**: As a contributor, I want `cairn decision add`, `cairn finding add`, `cairn action add`, and `cairn action complete` to work against a remote-mode project repo the same way they work against a local one.
+
+**Expected behavior**
+- In a project repo with a remote-mode `cairn.toml`, the four write commands transparently dispatch over HTTP, invoking the matching MCP write tool. No CLI shape changes.
+- Credentials: `CAIRN_BEARER_TOKEN` env var first; then `~/.config/cairn/credentials.toml` keyed by endpoint URL (mode `0600` on write). Never committed.
+- Failures are CLI-shaped: missing token, HTTP 401/403, network unreachable, and remote validation errors each produce distinct messages mentioning the endpoint.
+- Reads (`cairn status`, `cairn validate`, etc.) against a remote-mode repo remain out of scope for this slice.
+
 ---
 
 ## §2 — Agent / Skill Stories

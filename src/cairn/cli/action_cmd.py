@@ -13,7 +13,7 @@ from ..git_ops import commit, get_user_identity
 from ..ids import next_id
 from ..io.state_io import load_state, write_actions
 from ..schemas import ActionItem
-from ._common import resolve_or_exit
+from ._common import RemoteTarget, resolve_or_exit_with_remote
 
 app = typer.Typer(no_args_is_help=True, help="Manage action items.")
 
@@ -39,7 +39,29 @@ def add(
     ),
 ) -> None:
     """Add an action item to ``state/action_items.yaml``."""
-    paths = resolve_or_exit()
+    target = resolve_or_exit_with_remote()
+
+    parsed_due = _parse_due(due_date)
+
+    # --- Remote dispatch -------------------------------------------------------
+    if isinstance(target, RemoteTarget):
+        from ..mcp.remote import RemoteDispatchError, dispatch_tool
+
+        args: dict = {"assignee": assignee, "text": text}
+        if parsed_due is not None:
+            args["due_date"] = parsed_due.isoformat()
+        if related:
+            args["related"] = list(related)
+        try:
+            result = dispatch_tool(target.endpoint, target.cairn_name, "add_action", args)
+        except RemoteDispatchError as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
+        typer.echo(f"Added {result.get('id', '?')} (via remote cairn at {target.endpoint}).")
+        return
+
+    # --- Local dispatch -------------------------------------------------------
+    paths = target
     state = load_state(paths)
 
     if assignee not in state.collaborator_ids():
@@ -59,7 +81,6 @@ def add(
         )
         raise typer.Exit(code=1)
 
-    parsed_due = _parse_due(due_date)
     new_id = next_id("A", state.action_ids())
     now = datetime.now(timezone.utc).replace(microsecond=0)
 
@@ -106,18 +127,37 @@ def complete(
     ),
 ) -> None:
     """Mark an action item complete; status, completed_at, and completed_by are recorded."""
-    paths = resolve_or_exit()
+    target = resolve_or_exit_with_remote()
+
+    # --- Remote dispatch -------------------------------------------------------
+    if isinstance(target, RemoteTarget):
+        from ..mcp.remote import RemoteDispatchError, dispatch_tool
+
+        # MCP tool `complete_action` uses `id` and `by` (not action_id / completed_by).
+        args: dict = {"id": action_id}
+        if by is not None:
+            args["by"] = by
+        try:
+            result = dispatch_tool(target.endpoint, target.cairn_name, "complete_action", args)
+        except RemoteDispatchError as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
+        typer.echo(f"Completed {action_id} (via remote cairn at {target.endpoint}).")
+        return
+
+    # --- Local dispatch -------------------------------------------------------
+    paths = target
     state = load_state(paths)
 
-    target = next((a for a in state.actions if a.id == action_id), None)
-    if target is None:
+    action_target = next((a for a in state.actions if a.id == action_id), None)
+    if action_target is None:
         typer.echo(f"error: no action item with id '{action_id}'", err=True)
         raise typer.Exit(code=1)
-    if target.status == "complete":
+    if action_target.status == "complete":
         typer.echo(f"error: {action_id} is already complete (no-op)", err=True)
         raise typer.Exit(code=1)
 
-    completed_by = by or target.assignee
+    completed_by = by or action_target.assignee
     if completed_by not in state.collaborator_ids():
         typer.echo(
             f"error: completer '{completed_by}' is not a known collaborator",
@@ -126,7 +166,7 @@ def complete(
         raise typer.Exit(code=1)
 
     now = datetime.now(timezone.utc).replace(microsecond=0)
-    updated = target.model_copy(
+    updated = action_target.model_copy(
         update={"status": "complete", "completed_at": now, "completed_by": completed_by}
     )
     actions = [updated if a.id == action_id else a for a in state.actions]

@@ -13,7 +13,7 @@ from ..git_ops import commit, get_user_identity
 from ..ids import next_id
 from ..io.state_io import load_state, write_decisions
 from ..schemas import Decision
-from ._common import resolve_or_exit
+from ._common import RemoteTarget, resolve_or_exit_with_remote
 
 app = typer.Typer(no_args_is_help=True, help="Manage decisions.")
 
@@ -33,7 +33,29 @@ def add(
     ),
 ) -> None:
     """Record a decision in ``state/decisions.yaml``."""
-    paths = resolve_or_exit()
+    target = resolve_or_exit_with_remote()
+
+    # --- Remote dispatch -------------------------------------------------------
+    if isinstance(target, RemoteTarget):
+        from ..mcp.remote import RemoteDispatchError, dispatch_tool
+
+        args: dict = {"author": author, "text": text}
+        if context is not None:
+            args["context"] = context
+        if related:
+            args["related"] = list(related)
+        if supersedes is not None:
+            args["supersedes"] = supersedes
+        try:
+            result = dispatch_tool(target.endpoint, target.cairn_name, "add_decision", args)
+        except RemoteDispatchError as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
+        typer.echo(f"Recorded {result.get('id', '?')} (via remote cairn at {target.endpoint}).")
+        return
+
+    # --- Local dispatch -------------------------------------------------------
+    paths = target
     state = load_state(paths)
 
     if author not in state.collaborator_ids():

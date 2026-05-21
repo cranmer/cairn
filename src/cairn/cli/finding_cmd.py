@@ -15,7 +15,7 @@ from ..git_ops import commit, get_user_identity
 from ..io.frontmatter import write as write_frontmatter
 from ..io.state_io import load_state
 from ..schemas import FindingFrontmatter
-from ._common import resolve_or_exit
+from ._common import RemoteTarget, resolve_or_exit_with_remote
 
 app = typer.Typer(no_args_is_help=True, help="Log findings under knowledge/findings/.")
 
@@ -61,7 +61,50 @@ def add(
     ),
 ) -> None:
     """Write ``knowledge/findings/YYYY-MM-DD-<slug>.md`` with YAML frontmatter."""
-    paths = resolve_or_exit()
+    target = resolve_or_exit_with_remote()
+
+    if body is not None and body_from is not None:
+        typer.echo("error: --body and --body-from are mutually exclusive", err=True)
+        raise typer.Exit(code=1)
+
+    body_text = body
+    if body_from is not None:
+        try:
+            body_text = body_from.read_text(encoding="utf-8")
+        except OSError as exc:
+            typer.echo(f"error: could not read --body-from: {exc}", err=True)
+            raise typer.Exit(code=1) from None
+
+    try:
+        final_slug = _kebab(slug or title)
+    except ValueError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from None
+
+    # --- Remote dispatch -------------------------------------------------------
+    if isinstance(target, RemoteTarget):
+        from ..mcp.remote import RemoteDispatchError, dispatch_tool
+
+        args: dict = {"author": author, "title": title, "slug": final_slug}
+        if related:
+            args["related"] = list(related)
+        if body_text is not None:
+            args["body"] = body_text
+        try:
+            result = dispatch_tool(target.endpoint, target.cairn_name, "add_finding", args)
+        except RemoteDispatchError as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
+        typer.echo(
+            f"Logged finding '{final_slug}' "
+            f"(via remote cairn at {target.endpoint})."
+        )
+        if "path" in result:
+            typer.echo(f"  path: {result['path']}")
+        return
+
+    # --- Local dispatch -------------------------------------------------------
+    paths = target
     state = load_state(paths)
 
     if author not in state.collaborator_ids():
@@ -81,30 +124,13 @@ def add(
         )
         raise typer.Exit(code=1)
 
-    if body is not None and body_from is not None:
-        typer.echo("error: --body and --body-from are mutually exclusive", err=True)
-        raise typer.Exit(code=1)
-    body_text = body
-    if body_from is not None:
-        try:
-            body_text = body_from.read_text(encoding="utf-8")
-        except OSError as exc:
-            typer.echo(f"error: could not read --body-from: {exc}", err=True)
-            raise typer.Exit(code=1) from None
-
-    try:
-        final_slug = _kebab(slug or title)
-    except ValueError as exc:
-        typer.echo(f"error: {exc}", err=True)
-        raise typer.Exit(code=1) from None
-
     now = datetime.now(timezone.utc).replace(microsecond=0)
     date_str = now.date().isoformat()
     filename = f"{date_str}-{final_slug}.md"
-    target = paths.findings / filename
-    if target.exists():
+    target_file = paths.findings / filename
+    if target_file.exists():
         typer.echo(
-            f"error: {target.relative_to(paths.root)} already exists. "
+            f"error: {target_file.relative_to(paths.root)} already exists. "
             f"Pick a different slug.",
             err=True,
         )
@@ -128,8 +154,6 @@ def add(
         typer.echo(f"error: schema validation failed:\n{exc}", err=True)
         raise typer.Exit(code=1) from None
 
-    # Substrate-as-truth: keep optional fields visible so the schema is
-    # self-documenting in the frontmatter. Empty/absent values render as null.
     fm = validated.model_dump(mode="json", exclude_none=False)
     body_to_write = (
         body_text.rstrip("\n") + "\n"
@@ -137,19 +161,19 @@ def add(
         else f"# {title}\n\nTODO: write up the finding.\n"
     )
     try:
-        write_frontmatter(target, fm, body_to_write)
+        write_frontmatter(target_file, fm, body_to_write)
     except OSError as exc:
         typer.echo(f"error: could not write finding file: {exc}", err=True)
         raise typer.Exit(code=1) from None
 
     if no_commit:
-        typer.echo(f"Wrote {target.relative_to(paths.root)} (not committed; --no-commit).")
+        typer.echo(f"Wrote {target_file.relative_to(paths.root)} (not committed; --no-commit).")
         return
 
     try:
         commit(
             repo,
-            [target],
+            [target_file],
             message=f"Log finding: {title[:60]}",
             author=get_user_identity(repo),
         )
@@ -157,4 +181,4 @@ def add(
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from None
 
-    typer.echo(f"Logged finding at {target.relative_to(paths.root)}.")
+    typer.echo(f"Logged finding at {target_file.relative_to(paths.root)}.")

@@ -1,15 +1,21 @@
-"""Project-repo `cairn.toml` pointer file (Stage 2 / ADR-0006 + ADR-0010).
+"""Project-repo ``cairn.toml`` pointer file (Stage 2 / ADR-0006 + ADR-0010).
 
-A project repo paired with a cairn carries a `cairn.toml` at its root:
+A project repo paired with a cairn carries a ``cairn.toml`` at its root.
+Three valid modes:
 
     [cairn]
-    name = "stellaforge"           # registered name (preferred)
-    # path = "../stellaforge-cairn"  # OR a local path (fallback)
-    # endpoint = "stdio:cairn mcp"   # OR an MCP endpoint URL (future)
+    path = "../stellaforge-cairn"   # local-path: filesystem path relative to cairn.toml
 
-Exactly one of ``name``, ``path``, or ``endpoint`` is required. ``name`` is
-the canonical form going forward (resolves against the user's MCP registry);
-``path`` is a useful fallback when the user hasn't set up an MCP server.
+    [cairn]
+    name = "stellaforge"            # local-registry: name in ~/.config/cairn/server.toml
+
+    [cairn]
+    endpoint = "https://cairn.example.com"   # remote MCP: HTTP MCP server
+    name = "stellaforge"                     # cairn handle on that server (required)
+
+Invalid combinations (rejected with an actionable error): empty pointer;
+both ``name`` and ``path``; both ``endpoint`` and ``path``; ``endpoint``
+without ``name``.
 """
 
 from __future__ import annotations
@@ -33,7 +39,13 @@ class CairnTomlError(CairnError):
 
 @dataclass(frozen=True)
 class CairnPointer:
-    """Parsed contents of a project-repo's ``cairn.toml`` pointer file."""
+    """Parsed contents of a project-repo's ``cairn.toml`` pointer file.
+
+    Exactly one of three modes is active (inspectable via the ``mode`` property):
+    - ``"local-path"``: ``path`` is set; ``name`` and ``endpoint`` are None.
+    - ``"local-registry"``: ``name`` is set; ``path`` and ``endpoint`` are None.
+    - ``"remote"``: both ``endpoint`` and ``name`` are set; ``path`` is None.
+    """
 
     name: str | None
     path: Path | None
@@ -44,6 +56,19 @@ class CairnPointer:
     def project_repo_root(self) -> Path:
         """The project repo's root (the directory containing the cairn.toml)."""
         return self.source.parent
+
+    @property
+    def mode(self) -> str:
+        """One of ``"local-path"``, ``"local-registry"``, or ``"remote"``."""
+        if self.path is not None:
+            return "local-path"
+        if self.endpoint is not None:
+            return "remote"
+        return "local-registry"
+
+    @property
+    def is_remote(self) -> bool:
+        return self.mode == "remote"
 
 
 def find_pointer(start: Path) -> Path | None:
@@ -81,16 +106,37 @@ def load_pointer(path: Path) -> CairnPointer:
     if endpoint is not None and not isinstance(endpoint, str):
         raise CairnTomlError(f"{path}: [cairn].endpoint must be a string")
 
-    present = sum(1 for v in (name, raw_path, endpoint) if v is not None)
-    if present == 0:
+    # Validate mode: three valid combinations, four invalid ones.
+    has_name = name is not None
+    has_path = raw_path is not None
+    has_endpoint = endpoint is not None
+
+    if not has_name and not has_path and not has_endpoint:
         raise CairnTomlError(
-            f"{path}: [cairn] table must specify exactly one of "
-            f"`name`, `path`, or `endpoint`"
+            f"{path}: [cairn] table must specify a pointer. "
+            f"Use `path` (local path), `name` (registered cairn), "
+            f"or `endpoint` + `name` (remote MCP server)."
         )
-    if present > 1:
+    if has_path and has_name:
         raise CairnTomlError(
-            f"{path}: [cairn] table must specify exactly one of "
-            f"`name`, `path`, or `endpoint` (found {present})"
+            f"{path}: [cairn] specifies both `path` and `name` — use exactly one. "
+            f"For a remote server use `endpoint` + `name` (no `path`)."
+        )
+    if has_path and has_endpoint:
+        raise CairnTomlError(
+            f"{path}: [cairn] specifies both `path` and `endpoint` — "
+            f"local-path and remote modes are mutually exclusive."
+        )
+    if has_endpoint and not has_name:
+        raise CairnTomlError(
+            f"{path}: [cairn].endpoint requires [cairn].name (the cairn handle "
+            f"on the remote server). Add `name = \"<cairn-handle>\"` to the "
+            f"[cairn] section."
+        )
+    if has_name and has_path and has_endpoint:
+        raise CairnTomlError(
+            f"{path}: [cairn] specifies all three of `name`, `path`, and "
+            f"`endpoint` — only one mode is allowed."
         )
 
     resolved_path: Path | None = None
@@ -119,14 +165,27 @@ def write_pointer(
 ) -> Path:
     """Write a ``cairn.toml`` at ``project_repo``'s root.
 
-    Exactly one of name/path/endpoint must be provided. Returns the
-    absolute path to the written file.
+    Valid combinations:
+    - ``name`` only → local-registry mode
+    - ``path`` only → local-path mode
+    - ``endpoint`` + ``name`` → remote MCP mode
+
+    Returns the absolute path to the written file.
     """
-    present = sum(1 for v in (name, path, endpoint) if v is not None)
-    if present != 1:
-        raise CairnTomlError(
-            "write_pointer requires exactly one of name/path/endpoint"
-        )
+    has_name = name is not None
+    has_path = path is not None
+    has_endpoint = endpoint is not None
+
+    if not has_name and not has_path and not has_endpoint:
+        raise CairnTomlError("write_pointer requires at least one of name/path/endpoint")
+    if has_path and has_name and not has_endpoint:
+        raise CairnTomlError("write_pointer: name and path are mutually exclusive")
+    if has_path and has_endpoint:
+        raise CairnTomlError("write_pointer: path and endpoint are mutually exclusive")
+    if has_endpoint and not has_name:
+        raise CairnTomlError("write_pointer: endpoint requires name (the cairn handle on the server)")
+    if has_name and has_path and has_endpoint:
+        raise CairnTomlError("write_pointer: specify only one mode (name, path, or endpoint+name)")
 
     if not project_repo.is_dir():
         raise CairnTomlError(f"project repo path is not a directory: {project_repo}")
@@ -139,9 +198,19 @@ def write_pointer(
         "",
         "[cairn]",
     ]
-    if name is not None:
-        lines.append(f'name = "{name}"')
-    elif path is not None:
+    if has_endpoint:
+        # Remote MCP mode: endpoint + name
+        assert name is not None
+        endpoint_esc = endpoint.replace("\\", "\\\\").replace('"', '\\"')  # type: ignore[union-attr]
+        name_esc = name.replace("\\", "\\\\").replace('"', '\\"')
+        lines.append(f'endpoint = "{endpoint_esc}"')
+        lines.append(f'name = "{name_esc}"')
+    elif has_name:
+        assert name is not None
+        name_esc = name.replace("\\", "\\\\").replace('"', '\\"')
+        lines.append(f'name = "{name_esc}"')
+    else:
+        assert path is not None
         # Prefer a path relative to the project repo when possible, for portability.
         try:
             rel = path.resolve().relative_to(project_repo.resolve())
@@ -149,24 +218,15 @@ def write_pointer(
         except ValueError:
             # Try walking up — express as ../sibling-dir if they share a parent.
             try:
-                common = Path(
-                    *(
-                        p
-                        for p in path.resolve().parts
-                        if p in project_repo.resolve().parts
-                    )
-                )
-                if str(common) and common != Path():
-                    # Compute a ../-style relative path.
-                    pr_parts = project_repo.resolve().parts
-                    pa_parts = path.resolve().parts
-                    common_len = 0
-                    for a, b in zip(pr_parts, pa_parts, strict=False):
-                        if a == b:
-                            common_len += 1
-                        else:
-                            break
-                    ups = ["..."] * (len(pr_parts) - common_len)
+                pr_parts = project_repo.resolve().parts
+                pa_parts = path.resolve().parts
+                common_len = 0
+                for a, b in zip(pr_parts, pa_parts, strict=False):
+                    if a == b:
+                        common_len += 1
+                    else:
+                        break
+                if common_len > 0:
                     ups = [".."] * (len(pr_parts) - common_len)
                     downs = list(pa_parts[common_len:])
                     path_str = "/".join(ups + downs)
@@ -177,10 +237,6 @@ def write_pointer(
         # TOML basic-string escaping
         path_str = path_str.replace("\\", "\\\\").replace('"', '\\"')
         lines.append(f'path = "{path_str}"')
-    else:
-        assert endpoint is not None
-        endpoint_esc = endpoint.replace("\\", "\\\\").replace('"', '\\"')
-        lines.append(f'endpoint = "{endpoint_esc}"')
 
     lines.append("")
     target.write_text("\n".join(lines), encoding="utf-8")

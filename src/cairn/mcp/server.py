@@ -532,11 +532,10 @@ def build_server() -> FastMCP:
     @mcp.tool(description="Mark an action item complete (mirrors `cairn action complete`).")
     def complete_action(
         id: str,
-        by: str,
+        by: str | None = None,
         cairn: str | None = None,
     ) -> dict[str, Any]:
         entry, paths = _resolve(cairn)
-        _validate_author(paths, by)
 
         actions = load_actions(paths)
         target_idx = next((i for i, a in enumerate(actions) if a.id == id), None)
@@ -546,12 +545,15 @@ def build_server() -> FastMCP:
         if action.status == "complete":
             raise RegistryError(f"action {id} is already complete")
 
+        completed_by = by or action.assignee
+        _validate_author(paths, completed_by)
+
         now = datetime.now(timezone.utc).replace(microsecond=0)
         actions[target_idx] = action.model_copy(
             update={
                 "status": "complete",
                 "completed_at": now,
-                "completed_by": by,
+                "completed_by": completed_by,
             }
         )
         write_actions(paths, actions)
@@ -1277,11 +1279,24 @@ def _ensure_registry_loadable() -> None:
         raise RuntimeError(str(exc)) from None
 
 
-def run() -> None:
-    """Entry point for `cairn mcp`. Runs the server over stdio."""
+def run(
+    transport: str = "stdio",
+    *,
+    host: str = "127.0.0.1",
+    port: int = 8765,
+    path: str = "/mcp",
+) -> None:
+    """Entry point for ``cairn mcp``.
+
+    ``transport`` is one of ``"stdio"`` (default), ``"streamable-http"``, or
+    ``"sse"``.  HTTP kwargs are forwarded to FastMCP and ignored for stdio.
+    """
     _ensure_registry_loadable()
     server = build_server()
-    server.run()  # stdio is FastMCP's default
+    if transport == "stdio":
+        server.run()  # FastMCP default
+    else:
+        server.run(transport=transport, host=host, port=port, path=path)
 
 
 # Silence unused-import linting from helpers imported only for re-export.
