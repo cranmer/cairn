@@ -56,8 +56,8 @@ def resolve_target(
 
     Exits with a clear error if resolution fails.
     """
-    from ..cairn_toml import find_pointer, load_pointer, CairnTomlError
-    from ..registry import lookup, RegistryError
+    from ..cairn_toml import CairnTomlError, find_pointer, load_pointer
+    from ..registry import RegistryError, lookup
 
     cwd = (start or Path.cwd()).resolve()
     pointer_path = find_pointer(cwd)

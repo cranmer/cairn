@@ -6,6 +6,7 @@ See ADR-0009, ADR-0010, and ADR-0012. Requires the ``[mcp]`` install extra.
 from __future__ import annotations
 
 from pathlib import Path
+
 import typer
 
 _VALID_TRANSPORTS = ("stdio", "streamable-http", "sse")
@@ -71,7 +72,7 @@ def mcp(
         raise typer.Exit(code=1)
 
     try:
-        from ..mcp.server import build_server, _ensure_registry_loadable
+        from ..mcp.server import _ensure_registry_loadable, build_server
     except ImportError as exc:
         typer.echo(
             f"error: MCP server requires the [mcp] extra. "

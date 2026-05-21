@@ -7,7 +7,6 @@ US-P-13: remote dispatch from write commands + echoing resolved cairn + new ID (
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,8 +14,8 @@ import pytest
 from typer.testing import CliRunner
 
 from cairn.cairn_toml import CairnTomlError, load_pointer, write_pointer
-from cairn.cli.app import app
 from cairn.cli._common import RemoteTarget, resolve_target
+from cairn.cli.app import app
 from cairn.mcp.remote import (
     RemoteAuthError,
     RemoteCallError,
@@ -79,7 +78,7 @@ def test_us_p_12_remote_mode_requires_name_with_endpoint(tmp_path: Path):
     """endpoint alone in cairn.toml is rejected with actionable error."""
     target = tmp_path / "cairn.toml"
     target.write_text('[cairn]\nendpoint = "https://mcp.example.com/mcp"\n', encoding="utf-8")
-    with pytest.raises(CairnTomlError, match="requires.*name"):
+    with pytest.raises(CairnTomlError, match=r"requires.*name"):
         load_pointer(target)
 
 
@@ -498,7 +497,10 @@ def test_us_p_13_remote_call_error_forwarded(cwd: Path, monkeypatch: pytest.Monk
 
 
 def test_remote_parse_sse_response():
-    raw = b'data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\\"id\\":\\"D-001\\"}"}]}}\n'
+    raw = (
+        b'data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text",'
+        b'"text":"{\\"id\\":\\"D-001\\"}"}]}}\n'
+    )
     result = _parse_sse_response(raw)
     assert result["result"]["content"][0]["type"] == "text"
 
@@ -539,6 +541,7 @@ def test_credentials_file_lookup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 def test_credentials_store_and_load(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     """store_token writes a 0600 file; resolve_token reads it back."""
     import stat
+
     import cairn.credentials as creds_mod
     monkeypatch.delenv("CAIRN_BEARER_TOKEN", raising=False)
     creds_file = tmp_path / "creds" / "credentials.toml"

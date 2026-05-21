@@ -98,7 +98,7 @@ def test_load_rejects_endpoint_without_name(tmp_path: Path):
     target.write_text(
         '[cairn]\nendpoint = "https://mcp.example.com/mcp"\n', encoding="utf-8"
     )
-    with pytest.raises(CairnTomlError, match="requires.*name"):
+    with pytest.raises(CairnTomlError, match=r"requires.*name"):
         load_pointer(target)
 
 

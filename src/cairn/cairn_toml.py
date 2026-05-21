@@ -155,7 +155,9 @@ def write_pointer(
     if path is not None and (name is not None or endpoint is not None):
         raise CairnTomlError("write_pointer: path cannot be combined with name or endpoint")
     if endpoint is not None and name is None:
-        raise CairnTomlError("write_pointer: endpoint requires name (cairn handle on the remote server)")
+        raise CairnTomlError(
+            "write_pointer: endpoint requires name (cairn handle on the remote server)"
+        )
     if path is None and name is None and endpoint is None:
         raise CairnTomlError("write_pointer requires one of: path, name, or endpoint+name")
 
