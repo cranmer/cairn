@@ -19,7 +19,7 @@ from git import GitCommandError, Repo
 from ..errors import CairnError
 from ..git_ops import commit, get_user_identity
 from ..io.state_io import load_collaborators
-from ._common import resolve_or_exit
+from ._common import require_local_target, resolve_target
 
 app = typer.Typer(no_args_is_help=True, help="Manage cairn explorations.")
 
@@ -77,7 +77,7 @@ def start(
     ),
 ) -> None:
     """Create `<user-id>/<kebab>` git branch, write a manifest, and update the index."""
-    paths = resolve_or_exit()
+    paths = require_local_target(resolve_target(), "exploration start")
     collabs = load_collaborators(paths)
     known_ids = {c.id for c in collabs}
 
@@ -286,7 +286,7 @@ def close(
     ),
 ) -> None:
     """Record the outcome of an exploration (merged or abandoned)."""
-    paths = resolve_or_exit()
+    paths = require_local_target(resolve_target(), "exploration close")
     status = status.lower()
     if status not in {"merged", "abandoned"}:
         typer.echo(f"error: --status must be 'merged' or 'abandoned', got '{status}'", err=True)

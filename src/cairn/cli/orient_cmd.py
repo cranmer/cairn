@@ -12,12 +12,12 @@ import typer
 
 from ..status import build_status, render_text
 from ..status.snapshot import state_for_branch
-from ._common import resolve_or_exit
+from ._common import require_local_target, resolve_target
 
 
 def orient() -> None:
     """Print PROJECT.md and the compact project status in one go."""
-    paths = resolve_or_exit()
+    paths = require_local_target(resolve_target(), "orient")
     if paths.project_md.is_file():
         typer.echo(paths.project_md.read_text(encoding="utf-8").rstrip())
     else:
