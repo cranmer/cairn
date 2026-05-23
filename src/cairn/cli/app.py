@@ -18,11 +18,32 @@ from .skills_cmd import app as skills_app
 from .status_cmd import status
 from .validate_cmd import validate
 
+def _version_callback(value: bool) -> None:
+    if value:
+        from .. import __version__
+
+        typer.echo(__version__)
+        raise typer.Exit()
+
+
 app = typer.Typer(
     no_args_is_help=True,
     help="Cairn — manage a cairn (research project repository).",
     add_completion=False,
 )
+
+
+@app.callback()
+def _root(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=_version_callback,
+        is_eager=True,
+        help="Print the Cairn package version and exit.",
+    ),
+) -> None:
+    """Cairn — manage a cairn (research project repository)."""
 
 app.command(name="init")(init)
 app.add_typer(collaborator_app, name="collaborator")
