@@ -118,10 +118,17 @@ def mcp(
 
     if transport == "stdio":
         server.run()
-    elif transport == "streamable-http":
-        server.run(transport="streamable-http", host=host, port=port, path=path)
+        return
+
+    # mcp>=1.27 takes host/port/path via settings, not run() kwargs.
+    server.settings.host = host
+    server.settings.port = port
+    if transport == "streamable-http":
+        server.settings.streamable_http_path = path
+        server.run(transport="streamable-http")
     else:  # sse
-        server.run(transport="sse", host=host, port=port, path=path)
+        server.settings.sse_path = path
+        server.run(transport="sse")
 
 
 def _default_name_for(p: Path) -> str:

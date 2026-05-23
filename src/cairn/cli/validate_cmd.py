@@ -5,7 +5,7 @@ from __future__ import annotations
 import typer
 
 from ..validate import run_all
-from ._common import resolve_or_exit
+from ._common import require_local_target, resolve_target
 
 
 def validate(
@@ -14,7 +14,7 @@ def validate(
     ),
 ) -> None:
     """Validate the cairn at the current location."""
-    paths = resolve_or_exit()
+    paths = require_local_target(resolve_target(), "validate")
     report = run_all(paths, strict=strict)
     typer.echo(report.render())
     raise typer.Exit(code=report.exit_code())

@@ -13,12 +13,57 @@ from ..paths import CairnPaths, resolve_cairn
 
 
 def resolve_or_exit(start: Path | None = None) -> CairnPaths:
-    """Resolve the enclosing cairn or exit with a clear message."""
+    """Resolve the enclosing cairn or exit with a clear message.
+
+    Cairn-marker-only resolution (no ``cairn.toml`` walk).  Most CLI
+    commands now use :func:`resolve_target` instead so they honor a
+    project repo's ``cairn.toml`` pairing; reach for this helper only
+    when ``cairn.toml`` resolution would be wrong (e.g. ``cairn link``
+    is itself the command that creates pointers).
+    """
     try:
         return resolve_cairn(start)
     except NotACairnError as exc:
+        _hint_pointer_if_any(start)
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from None
+
+
+def _hint_pointer_if_any(start: Path | None) -> None:
+    """If a ``cairn.toml`` exists at or above cwd, mention it in the error.
+
+    Helps users distinguish "no pairing configured" from "this command
+    doesn't yet honor the pointer" — see finding F-04 in the
+    multi-user/multi-cairn test run synthesis.
+    """
+    from ..cairn_toml import find_pointer
+
+    cwd = (start or Path.cwd()).resolve()
+    pointer_path = find_pointer(cwd)
+    if pointer_path is not None:
+        typer.echo(
+            f"note: a cairn.toml pointer exists at {pointer_path} but this "
+            f"command does not yet honor it.",
+            err=True,
+        )
+
+
+def require_local_target(target: "CairnPaths | RemoteTarget", command: str) -> CairnPaths:
+    """Return *target* as :class:`CairnPaths`, exiting if it is remote.
+
+    For commands that have no remote-MCP implementation yet (status,
+    validate, exploration, etc.), this gives the user a clear error
+    instead of silently falling through to a local lookup.
+    """
+    if isinstance(target, RemoteTarget):
+        typer.echo(
+            f"error: `cairn {command}` is not supported against a remote-MCP "
+            f"cairn yet (this project repo is paired with "
+            f"'{target.cairn_name}' at {target.endpoint}).",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    return target
 
 
 def exit_on(error: CairnError, code: int = 1) -> None:

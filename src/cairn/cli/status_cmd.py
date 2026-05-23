@@ -6,7 +6,7 @@ import typer
 
 from ..status import build_status, render_json, render_text
 from ..status.snapshot import state_for_branch
-from ._common import resolve_or_exit
+from ._common import require_local_target, resolve_target
 
 
 def status(
@@ -16,7 +16,7 @@ def status(
     ),
 ) -> None:
     """Print a compact summary of the project's current state."""
-    paths = resolve_or_exit()
+    paths = require_local_target(resolve_target(), "status")
     state = state_for_branch(paths, branch)
     branch_label = branch or "current"
     snap = build_status(paths, state, branch=branch_label)

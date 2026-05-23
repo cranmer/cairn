@@ -114,7 +114,13 @@ def add(
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from None
 
-    typer.echo(f"Recorded {new_id}.")
+    rel_path = paths.decisions_yaml.relative_to(paths.root)
+    parts = [f"Recorded {new_id} in {rel_path}"]
+    if related:
+        parts.append(f"related: {', '.join(related)}")
+    if supersedes:
+        parts.append(f"supersedes: {supersedes}")
+    typer.echo("; ".join(parts) + ".")
 
 
 def _add_remote(

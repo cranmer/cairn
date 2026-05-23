@@ -28,7 +28,7 @@ def _kebab(text: str) -> str:
     slug = _SLUG_BAD.sub("-", text).strip("-")
     if not slug:
         raise ValueError("could not derive a slug from the given title or slug input")
-    return slug[:60]
+    return slug[:60].rstrip("-")
 
 
 def _current_branch(repo: Repo) -> str | None:

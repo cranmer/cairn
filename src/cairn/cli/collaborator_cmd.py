@@ -16,7 +16,7 @@ from ..git_ops import commit, get_user_identity
 from ..io.state_io import load_collaborators, write_collaborators
 from ..paths import CairnPaths
 from ..schemas import Collaborator
-from ._common import resolve_or_exit
+from ._common import require_local_target, resolve_target
 
 app = typer.Typer(no_args_is_help=True, help="Manage cairn collaborators.")
 
@@ -63,7 +63,11 @@ def add(
             "experiments', 'maintaining the data pipeline') over titles."
         ),
     ),
-    type_: str = typer.Option("human", "--type", help="'human' or 'ai-collaborator'."),
+    type_: str = typer.Option(
+        "human",
+        "--type",
+        help="'human', 'ai-collaborator', 'group', or 'unknown'.",
+    ),
     email: str | None = typer.Option(
         None,
         "--email",
@@ -86,7 +90,7 @@ def add(
     ),
 ) -> None:
     """Add one or more collaborators to ``state/collaborators.yaml``."""
-    paths = resolve_or_exit()
+    paths = require_local_target(resolve_target(), "collaborator add")
 
     new_models: list[Collaborator] = []
 

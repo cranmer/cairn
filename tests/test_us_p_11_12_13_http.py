@@ -62,10 +62,13 @@ def test_us_p_11_invalid_transport_fails_fast(
 def test_us_p_11_valid_transport_values_dont_fail_early():
     """Valid --transport values don't trigger the 'invalid --transport' early guard.
 
-    If [mcp] extra is absent the error is about the missing import, not the transport.
+    Mocks ``server.run`` so the test doesn't actually start a long-running
+    server (which would block stdio and leave HTTP listeners open).
     """
     for transport in ("stdio", "streamable-http", "sse"):
-        res = runner.invoke(app, ["mcp", "--transport", transport])
+        with patch("cairn.mcp.server.build_server") as build:
+            build.return_value.run.return_value = None
+            res = runner.invoke(app, ["mcp", "--transport", transport])
         assert "invalid --transport" not in res.output
 
 

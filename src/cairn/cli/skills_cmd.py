@@ -19,7 +19,7 @@ import typer
 
 from ..git_ops import commit, get_user_identity
 from ..template.render import default_template_root
-from ._common import resolve_or_exit
+from ._common import require_local_target, resolve_target
 
 app = typer.Typer(no_args_is_help=True, help="Manage the cairn's bundled skills.")
 
@@ -49,7 +49,7 @@ def sync(
     ),
 ) -> None:
     """Copy any newly-bundled skills from the installed cairn package into this cairn."""
-    paths = resolve_or_exit()
+    paths = require_local_target(resolve_target(), "skills sync")
     source = _bundled_skills_dir()
     target_root = paths.skills
 
