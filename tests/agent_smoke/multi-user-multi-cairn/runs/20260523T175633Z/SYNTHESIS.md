@@ -4,6 +4,18 @@
 **Branch:** `claude/multi-user-multi-cairn-test-run`
 **Plan:** `tests/agent_smoke/multi-user-multi-cairn/` (merged via PR #26)
 
+## Status
+
+**Findings F-01, F-02, F-03, F-04, F-06, F-07, F-08, and F-10 are fixed
+in this same PR** (#27). F-05 (`cairn whoami` at the CLI) and F-09
+(`--branch` → `--exploration` rename, already noted in CLAUDE.md's
+backlog) remain for follow-up. Full suite passes (269 tests; +14 new
+tests for the fixes).
+
+Scenario 2 — which was blocked at the start of this run by F-01 and
+F-02 — is now executable against this branch and should be re-run as
+a follow-up.
+
 ## Headline
 
 The methodology surfaced **two critical bugs that block scenario 2
