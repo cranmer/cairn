@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scenario · One user, many cairns — Cairn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Newsreader:opsz,wght@6..72,200..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF6F0;
+    --bg-tint: #F4ECDF;
+    --bg-sand: #E8DDD0;
+    --ink: #1A1714;
+    --ink-muted: #5C5249;
+    --ink-fade: #8B8275;
+    --accent: #A85C3D;
+    --accent-pale: #FDF4EE;
+    --rule: #D4C9BC;
+    --display: 'Fraunces', ui-serif, Georgia, serif;
+    --body: 'Newsreader', ui-serif, 'Iowan Old Style', Georgia, serif;
+    --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 18px;
+    line-height: 1.65;
+    font-feature-settings: "kern", "liga", "onum";
+  }
+  ::selection { background: var(--accent); color: var(--bg); }
+  .container { max-width: 760px; margin: 0 auto; padding: 0 32px; }
+  .wide { max-width: 1040px; margin: 0 auto; padding: 0 32px; }
+
+  .hero {
+    padding: 96px 32px 64px;
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    top: 20px; right: 40px;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 28px;
+  }
+  .hero-eyebrow a {
+    color: var(--ink-muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+  }
+  .hero-eyebrow a:hover { color: var(--accent); border-color: var(--accent); }
+  .hero h1 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    font-size: clamp(56px, 9vw, 112px);
+    line-height: 0.96;
+    letter-spacing: -0.02em;
+    margin: 0 0 28px 0;
+    color: var(--ink);
+  }
+  .hero h1 .dot { color: var(--accent); }
+  .hero-sub {
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(22px, 3vw, 30px);
+    line-height: 1.3;
+    color: var(--ink-muted);
+    max-width: 720px;
+  }
+
+  section { padding: 64px 0; border-top: 1px solid var(--rule); }
+  section:first-of-type { border-top: none; }
+
+  .section-number {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-fade);
+    margin-bottom: 16px;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(34px, 4.5vw, 48px);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0 0 28px 0;
+    color: var(--ink);
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 24px;
+    line-height: 1.25;
+    margin: 40px 0 16px 0;
+    color: var(--ink);
+  }
+  p { margin: 0 0 18px 0; }
+  code, .mono {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--bg-tint);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.55;
+    background: var(--ink);
+    color: #EFE6D8;
+    padding: 18px 22px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 18px 0 24px 0;
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  .dialogue {
+    margin: 22px 0 22px 0;
+    padding: 14px 22px;
+    background: var(--accent-pale);
+    border-left: 3px solid var(--accent);
+    font-family: var(--display);
+    font-style: italic;
+    color: var(--ink);
+  }
+  .dialogue .speaker {
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .diagram {
+    margin: 28px 0;
+    padding: 28px 24px;
+    background: var(--bg-tint);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink-muted);
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .diagram b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  footer {
+    padding: 56px 32px 80px;
+    border-top: 1px solid var(--rule);
+    text-align: center;
+    color: var(--ink-fade);
+    font-size: 14px;
+  }
+  footer a {
+    color: var(--ink-muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+  }
+  footer a:hover { color: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-eyebrow"><a href="index.html">← Cairn</a> · Scenario A</div>
+    <h1>One researcher,<br>two projects<span class="dot">.</span></h1>
+    <p class="hero-sub">Kyle keeps a coral-monitoring project and a literature-tracking project alive at the same time. Each project has its own cairn. The agent reaches the right one without being told.</p>
+  </div>
+</div>
+
+<!-- ============ §1 SETUP ============ -->
+<section>
+  <div class="container">
+    <div class="section-number">§1 — The setup</div>
+    <h2>Two projects, two cairns, one MCP server.</h2>
+
+    <p>Kyle is a marine biologist with two active projects: <code>coral-bleach</code> (a multi-year monitoring study of three transect sites in the Coral Triangle) and <code>lit-monitor</code> (an arXiv- and journal-feed watcher for relevant new papers). They live in two separate project repos. Each has its own cairn for project memory — decisions, findings, open questions, collaborators.</p>
+
+    <p>Both cairns are registered against the same user-level <code>cairn mcp</code> server. One server, two cairns, one researcher juggling both contexts during the same week.</p>
+
+    <div class="diagram">~/.config/cairn/server.toml         (the user-level registry)
+   ├─ <b>coral-bleach</b>   → ~/cairns/coral-bleach/
+   └─ <b>lit-monitor</b>    → ~/cairns/lit-monitor/
+
+~/projects/coral-bleach/cairn.toml   →  name = "coral-bleach"
+~/projects/lit-monitor/cairn.toml    →  name = "lit-monitor"
+
+Claude Code  ──MCP stdio──▶  cairn mcp  ──reads/writes──▶  the right cairn
+                                        (resolved via cairn.toml at cwd)</div>
+
+    <p>The pairing happens once, when each project repo is first set up: <code>cd ~/projects/coral-bleach &amp;&amp; cairn link --name coral-bleach</code>. That writes a small <code>cairn.toml</code> at the project root. From then on, any Claude Code session opened in that project repo reaches <code>coral-bleach</code>'s cairn automatically — the agent doesn't have to ask, and Kyle doesn't have to pick.</p>
+  </div>
+</section>
+
+<!-- ============ §2 A DAY ============ -->
+<section>
+  <div class="container">
+    <div class="section-number">§2 — A day in two projects</div>
+    <h2>Three scenes from a Tuesday.</h2>
+
+    <h3>9:00 — A finding on coral-bleach</h3>
+    <p>Kyle finishes the morning's transect analysis. T3's 2024 cover dropped to ~30% from a multi-year mean near 50%. He opens Claude Code in <code>~/projects/coral-bleach/</code> and says:</p>
+
+    <div class="dialogue">
+      <span class="speaker">Kyle</span>
+      Log a finding: T3 cover dropped to about 30% in 2024, well below the multi-year mean. Body should cite data/transects-2024.csv.
+    </div>
+
+    <p>The agent calls the MCP <code>add_finding</code> tool with <code>cairn</code> defaulting to <code>coral-bleach</code> (because <code>cairn.toml</code> at cwd says so), <code>author=kyle</code>, the title and body Kyle supplied. The server writes <code>knowledge/findings/2026-05-23-coral-cover-at-transect-t3-dropped-to-30-in-2024.md</code> into <code>coral-bleach</code>'s repo, attributed via git authorship, and commits it. The whole transaction is invisible to Kyle except for a one-line confirmation in the chat.</p>
+
+    <h3>11:30 — A decision, with a cross-reference</h3>
+    <p>The T3 trend pushes Kyle toward a methodology change he's been mulling for months. He decides to switch from line-intercept transects to belt transects starting with the 2025 season. The change connects to an open question raised last November about whether to base the bleaching-extent baseline on pre- or post-bleach surveys.</p>
+
+    <div class="dialogue">
+      <span class="speaker">Kyle</span>
+      Record a decision: switch from line-intercept to belt transects starting in 2025. Context: belt transects integrate over more area. This relates to Q-001 (the baseline-year question).
+    </div>
+
+    <p>Agent calls <code>add_decision</code> with <code>related=["Q-001"]</code>. Server allocates <code>D-002</code> (D-001 was the prior PIT-tag decision), validates that <code>Q-001</code> exists in the cairn-wide id index, writes it to <code>state/decisions.yaml</code>, commits. Kyle's confirmation in the chat names <code>D-002</code> and the file path so he can read it back later if he wants.</p>
+
+    <h3>14:00 — Switching contexts to lit-monitor</h3>
+    <p>After lunch Kyle skims arXiv listings and notices a methodology comparison paper (2403.04567) on belt vs. line-intercept sampling. He opens a <em>second</em> Claude Code session — same machine, different window — in <code>~/projects/lit-monitor/</code>.</p>
+
+    <div class="dialogue">
+      <span class="speaker">Kyle</span>
+      Log a finding here that this paper is worth a closer read; we should link it to the belt-vs-line-intercept decision I made earlier today on coral-bleach.
+    </div>
+
+    <p>This session's <code>cairn.toml</code> says <code>name = "lit-monitor"</code>, so the agent's <code>add_finding</code> call routes there — not to <code>coral-bleach</code>. The finding lands in <code>~/cairns/lit-monitor/knowledge/findings/2026-05-23-methods-comparison-paper-arxiv-2403-04567-is-worth-a-closer.md</code>. The cross-project link is captured in the body text rather than a structured <code>related</code> field — references across cairns aren't first-class entities the way references within one cairn are.</p>
+
+    <p>The same agent, the same person, the same afternoon, two cairns. The agent never asked "which one?"; the repo Kyle was in was the answer.</p>
+  </div>
+</section>
+
+<!-- ============ §3 WHAT MAKES IT WORK ============ -->
+<section>
+  <div class="container">
+    <div class="section-number">§3 — What makes it work</div>
+    <h2>cairn.toml is the routing slip.</h2>
+
+    <p>Every project repo that pairs with a cairn carries a small <code>cairn.toml</code> at its root:</p>
+
+    <pre><code>[cairn]
+name = "coral-bleach"</code></pre>
+
+    <p>When the CLI or MCP server resolves a write, it walks up from cwd looking for this pointer. The <code>name</code> field looks the cairn up in the user-level registry; the registry points at the actual filesystem path. (Two other modes — a direct <code>path = ...</code> and a remote-MCP <code>endpoint = ...</code> + <code>name = ...</code> — exist for other deployments, but the registry-by-name form is the everyday case.)</p>
+
+    <p>The same routing applies to read commands. <code>cairn status</code> in <code>~/projects/coral-bleach/</code> returns coral-bleach's status; <code>cairn status</code> in <code>~/projects/lit-monitor/</code> returns lit-monitor's. The agent doesn't track a "current cairn" — there's no mode to forget to switch out of. Cwd is the state.</p>
+
+    <h3>When Kyle needs to write to the other cairn</h3>
+    <p>If, while sitting in coral-bleach, Kyle decides he also wants to log something to lit-monitor without switching shells, he can pass an explicit cairn override to the MCP tool: <code>add_finding(cairn="lit-monitor", ...)</code>. The agent surfaces this naturally when Kyle says "log this to the other project". The everyday case stays implicit; the occasional cross-write is one word away.</p>
+
+    <h3>When something goes wrong</h3>
+    <p>If Kyle opens Claude Code in a directory that <em>doesn't</em> have a <code>cairn.toml</code>, the agent gets a clear error naming the cwd that was searched. If a <code>cairn.toml</code> names a cairn that isn't registered — say Kyle copied the project repo from a colleague but never ran <code>cairn register</code> — the error names the missing cairn and suggests the fix:</p>
+
+    <pre><code>error: cairn 'coral-bleach' is not registered. Add it with
+       `cairn register coral-bleach &lt;path&gt;`. See `cairn registered`.</code></pre>
+
+    <p>The error message does the work of telling Kyle what to do, without him having to think about which discovery surface he tripped over.</p>
+  </div>
+</section>
+
+<!-- ============ §4 WHY ============ -->
+<section>
+  <div class="container">
+    <div class="section-number">§4 — Why this shape</div>
+    <h2>One server, many cairns. cwd as discriminator.</h2>
+
+    <p>An earlier design considered one MCP server per cairn — a process forest, one per project. It's tidy in isolation but doesn't scale to a researcher with four projects: four servers to register with Claude Code, four to restart when something changes. The user-level registry collapses that to one server and a tiny config file.</p>
+
+    <p>An alternative was a Claude Code "session-level cairn selection" — pick one cairn when the session starts, remember it. That breaks the moment Kyle wants to log a quick cross-project note without alt-tabbing to a different window. The cwd-as-discriminator design lets the obvious place to do work — the project repo — also be the obvious place to capture about it.</p>
+
+    <p>The cost of this design is that Kyle's project repos all need <code>cairn.toml</code> at their roots. That's one file, written once via <code>cairn link</code>, checked into git so the rest of the team picks it up automatically. The benefit is that <em>everywhere</em> Kyle naturally is — the project he's working on — is also where the agent already knows to write.</p>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <p>Working draft for discussion · <a href="index.html">Back to the overview</a> · <a href="scenario-many-users-one-cairn.html">The other scenario: many users, one cairn →</a></p>
+</footer>
+
+</body>
+</html>

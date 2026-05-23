@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scenario · Many users, one cairn — Cairn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Newsreader:opsz,wght@6..72,200..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF6F0;
+    --bg-tint: #F4ECDF;
+    --bg-sand: #E8DDD0;
+    --ink: #1A1714;
+    --ink-muted: #5C5249;
+    --ink-fade: #8B8275;
+    --accent: #A85C3D;
+    --accent-pale: #FDF4EE;
+    --rule: #D4C9BC;
+    --display: 'Fraunces', ui-serif, Georgia, serif;
+    --body: 'Newsreader', ui-serif, 'Iowan Old Style', Georgia, serif;
+    --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 18px;
+    line-height: 1.65;
+    font-feature-settings: "kern", "liga", "onum";
+  }
+  ::selection { background: var(--accent); color: var(--bg); }
+  .container { max-width: 760px; margin: 0 auto; padding: 0 32px; }
+  .wide { max-width: 1040px; margin: 0 auto; padding: 0 32px; }
+
+  .hero {
+    padding: 96px 32px 64px;
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    top: 20px; right: 40px;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 28px;
+  }
+  .hero-eyebrow a {
+    color: var(--ink-muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+  }
+  .hero-eyebrow a:hover { color: var(--accent); border-color: var(--accent); }
+  .hero h1 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    font-size: clamp(56px, 9vw, 112px);
+    line-height: 0.96;
+    letter-spacing: -0.02em;
+    margin: 0 0 28px 0;
+    color: var(--ink);
+  }
+  .hero h1 .dot { color: var(--accent); }
+  .hero-sub {
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(22px, 3vw, 30px);
+    line-height: 1.3;
+    color: var(--ink-muted);
+    max-width: 720px;
+  }
+
+  section { padding: 64px 0; border-top: 1px solid var(--rule); }
+  section:first-of-type { border-top: none; }
+
+  .section-number {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-fade);
+    margin-bottom: 16px;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(34px, 4.5vw, 48px);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0 0 28px 0;
+    color: var(--ink);
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 24px;
+    line-height: 1.25;
+    margin: 40px 0 16px 0;
+    color: var(--ink);
+  }
+  p { margin: 0 0 18px 0; }
+  code, .mono {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--bg-tint);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.55;
+    background: var(--ink);
+    color: #EFE6D8;
+    padding: 18px 22px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 18px 0 24px 0;
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  .dialogue {
+    margin: 22px 0 22px 0;
+    padding: 14px 22px;
+    background: var(--accent-pale);
+    border-left: 3px solid var(--accent);
+    font-family: var(--display);
+    font-style: italic;
+    color: var(--ink);
+  }
+  .dialogue .speaker {
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .diagram {
+    margin: 28px 0;
+    padding: 28px 24px;
+    background: var(--bg-tint);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink-muted);
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .diagram b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .three-up {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin: 28px 0;
+  }
+  .person {
+    padding: 18px 20px 20px;
+    background: var(--bg-tint);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+  }
+  .person h4 {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 20px;
+    margin: 0 0 4px 0;
+    color: var(--ink);
+  }
+  .person .role {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .person p { font-size: 15px; margin: 0; color: var(--ink-muted); }
+  @media (max-width: 720px) {
+    .three-up { grid-template-columns: 1fr; }
+  }
+
+  footer {
+    padding: 56px 32px 80px;
+    border-top: 1px solid var(--rule);
+    text-align: center;
+    color: var(--ink-fade);
+    font-size: 14px;
+  }
+  footer a {
+    color: var(--ink-muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+  }
+  footer a:hover { color: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-eyebrow"><a href="index.html">← Cairn</a> · Scenario B</div>
+    <h1>Three authors,<br>one paper<span class="dot">.</span></h1>
+    <p class="hero-sub">Alex, Morgan, and Sam are writing a physics paper together. They share one cairn over HTTP. Each works in their own session, on their own machine, with their own identity — and the project memory stays coherent.</p>
+  </div>
+</div>
+
+<!-- ============ §1 SETUP ============ -->
+<section>
+  <div class="container">
+    <div class="section-number">§1 — The setup</div>
+    <h2>One shared cairn, three working copies.</h2>
+
+    <p>The paper is a measurement of a new physics observable in LHC Run 3 data. Three collaborators are splitting the work:</p>
+
+    <div class="three-up">
+      <div class="person">
+        <h4>Alex</h4>
+        <div class="role">Methods lead</div>
+        <p>Owns event selection, control regions, systematic uncertainties. Writes most of the analysis-decisions.</p>
+      </div>
+      <div class="person">
+        <h4>Morgan</h4>
+        <div class="role">Analysis lead</div>
+        <p>Runs the fit, generates closure tests, flags pulls and residuals. Logs the findings the methods discussion responds to.</p>
+      </div>
+      <div class="person">
+        <h4>Sam</h4>
+        <div class="role">Writeup lead</div>
+        <p>Drafts the manuscript, tracks references, structures the methods section around the decisions Alex and Morgan land.</p>
+      </div>
+    </div>
+
+    <p>Their cairn — <code>shared-physics-paper</code> — lives on a group machine. The <code>cairn mcp</code> server runs there as a long-lived process on HTTP transport, bound to the group's network. Each collaborator's project repo on their own laptop carries a <code>cairn.toml</code> pointing at that server:</p>
+
+    <pre><code>[cairn]
+endpoint = "https://group-server.example.org/mcp"
+name = "shared-physics-paper"</code></pre>
+
+    <div class="diagram">                       <b>group-server</b>
+                  ┌──────────────────────────────┐
+                  │  cairn mcp (streamable-http) │
+                  │      ↕                       │
+                  │  shared-physics-paper cairn  │
+                  │   (git repo on disk)         │
+                  └──────────────────────────────┘
+                              ▲
+                ┌─────────────┼─────────────┐
+                │             │             │
+           alex's laptop  morgan's laptop  sam's laptop
+           (Claude Code   (Claude Code     (Claude Code
+            session)       session)         session)
+
+Each laptop: ~/projects/paper/cairn.toml → endpoint + name
+             ~/.config/cairn/credentials.toml → bearer token</div>
+
+    <p>Their bearer tokens authenticate the network connection; their <code>author</code> parameter on each write claims the identity. (The current posture, per Issue #22, is <em>attribution, not authentication</em>: the token gets you onto the wire, the <code>author</code> says who you are. Binding the two is a future design pass.)</p>
+  </div>
+</section>
+
+<!-- ============ §2 A DAY ============ -->
+<section>
+  <div class="container">
+    <div class="section-number">§2 — Tuesday afternoon</div>
+    <h2>Three sessions running in parallel.</h2>
+
+    <p>It's a working Tuesday. All three have Claude Code open, each in their own copy of the project repo. They're not in a call; they're in async-collaboration mode. The cairn is the shared substrate they all reach.</p>
+
+    <h3>Alex — tightening the methods</h3>
+    <p>Alex has been studying MET-balance plots and concludes the 30 GeV leading-jet cut is being dominated by pileup-induced fake jets. She tells her agent:</p>
+
+    <div class="dialogue">
+      <span class="speaker">Alex</span>
+      Record a decision: tighten the leading-jet pT cut from 30 to 40 GeV. Context: MET-balance studies show the lower threshold is pileup-dominated. Relate it to Q-001 (Morgan's JER-double-counting question).
+    </div>
+
+    <p>The agent calls <code>add_decision</code> against the HTTP server. The server allocates <code>D-002</code> (D-001 was the V+jets control-region decision from two weeks ago), validates <code>Q-001</code> exists in the cairn-wide id index, writes <code>state/decisions.yaml</code> on the group machine with <code>author: alex</code>, commits. Alex's confirmation:</p>
+
+    <pre><code>Recorded D-002 in state/decisions.yaml; related: Q-001.</code></pre>
+
+    <p>She follows up with three more writes over the next ten minutes — an action item (<code>A-001</code>: produce updated efficiency tables), a decision to keep the existing trigger threshold (<code>D-003</code>), and a nuisance-grouping decision (<code>D-004</code>). Each landing on the same shared cairn, each attributed to <code>alex</code>.</p>
+
+    <h3>Morgan — finding what the toys say</h3>
+    <p>While Alex is writing decisions, Morgan is running 1000-toy closure tests in a Jupyter notebook. The smoothing window of 5 bins over-smooths the third peak in the toy distribution by 1.3σ. Morgan opens her Claude Code session:</p>
+
+    <div class="dialogue">
+      <span class="speaker">Morgan</span>
+      Log a finding: smoothing window of 5 bins over-smooths the third peak in the toys. Body: closure-test residuals biased by 1.3 sigma when window is 5; reducing to 3 bins resolves it.
+    </div>
+
+    <p>The agent writes <code>knowledge/findings/2026-05-23-smoothing-window-of-5-bins-over-smooths-the-third-peak-in-th.md</code> attributed to <code>morgan</code>. A few minutes later she adds a second finding (ttbar normalization pulls), and an action item (<code>A-002</code>: rerun toys with extended nuisances).</p>
+
+    <p>Crucially, Morgan never had to ask "which cairn?" or "what id should this be?" The server allocates ids; the cairn.toml at her cwd dispatches the calls; her bearer token gets her in; her <code>--author morgan</code> claims the attribution. Two findings + one action, no coordination overhead.</p>
+
+    <h3>Sam — citing across authors</h3>
+    <p>Sam is drafting the methods section. He wants to record the editorial decision to organize the section around the four orthogonal control regions, and a second decision to cite Hughes et al. 2026 as the canonical smoothing reference. He needs the latter to reference Alex's <em>just-landed</em> luminosity-nuisance decision.</p>
+
+    <p>Sam's agent reads the cairn's <code>state/decisions.yaml</code> via the MCP <code>get_decisions</code> tool — finds Alex's runtime allocations, picks <code>D-004</code>, and dispatches Sam's write:</p>
+
+    <div class="dialogue">
+      <span class="speaker">Sam</span>
+      Record a decision to cite Hughes et al. as the canonical reference for our smoothing prescription. It builds on Alex's luminosity-nuisance grouping decision.
+    </div>
+
+    <p>The server allocates <code>D-005</code>, validates that <code>D-004</code> exists, writes <code>related: [D-004]</code>. Sam adds a second decision (<code>D-006</code>: methods-section organization) and an action item (<code>A-003</code>: circulate the draft by Friday).</p>
+
+    <p>At the end of the afternoon, the cairn holds six decisions, three findings, one open question, three action items. Every entity carries the right author. No duplicate ids. No mis-routed writes. Three people, three sessions, one coherent project memory.</p>
+  </div>
+</section>
+
+<!-- ============ §3 WHAT MAKES IT WORK ============ -->
+<section>
+  <div class="container">
+    <div class="section-number">§3 — What makes it work</div>
+    <h2>The server arbitrates; the clients claim.</h2>
+
+    <p>The server-side <code>add_decision</code> tool serializes id allocation: even though Alex's and Sam's writes interleave in time, no one gets a duplicate id, and the sequence <code>D-002, D-003, D-004, D-005, D-006</code> is dense (no gaps from failed-then-retried writes). Same for action items — <code>A-001</code> through <code>A-003</code> reflect the actual race order of allocation across all three writers, not any client's internal ordering.</p>
+
+    <p>Attribution is per-call. Each write tool requires an <code>author</code> (or <code>assignee</code>) parameter naming a registered collaborator. The server validates against <code>state/collaborators.yaml</code> and refuses unknown ids loudly. The bearer token authorizes the connection but doesn't pick the author — that's the writer's job.</p>
+
+    <p>Cross-references work because the cairn-wide id index is server-side. When Sam's write claims <code>related: [D-004]</code>, the server checks D-004 exists right now, in this same cairn, regardless of which collaborator allocated it or when. No two-phase commit, no eventual consistency — the writes serialize through a single process on a single disk.</p>
+
+    <h3>What "concurrent" means here</h3>
+    <p>The realistic concurrency is loose. Three collaborators in three sessions interleave at the timescale of paragraphs and CLI invocations — every few seconds, not every few microseconds. The methodology doesn't need millisecond-tight races to be useful; it needs realistic interleaving plus clean serialization. A future load test could push harder, but for a research group of three to ten people working in parallel on the same paper, this is exactly the right concurrency budget.</p>
+
+    <h3>What "shared" doesn't mean</h3>
+    <p>Each collaborator works on their own copy of the project repo (their code, their drafts, their notebooks). The cairn is the only shared piece. There's no merge conflict on a paper draft because <em>the paper draft isn't shared through cairn</em>; cairn holds the decisions about it. The substrate is git; the project repo and the cairn are two separate git repos that happen to know about each other.</p>
+  </div>
+</section>
+
+<!-- ============ §4 ROUGH EDGES ============ -->
+<section>
+  <div class="container">
+    <div class="section-number">§4 — Where it's still rough</div>
+    <h2>Working but not finished.</h2>
+
+    <p>The methodology has been exercised end-to-end against a real HTTP MCP server with three concurrent sub-agent writers; attribution, id monotonicity, and cross-user references all hold. The rough edges that remain are about <em>making the surface natural</em> rather than about correctness:</p>
+
+    <p><strong>CLI read parity over HTTP is incomplete.</strong> When Sam needed to cite Alex's <code>D-004</code>, his agent used an MCP read tool — but the equivalent <code>cairn</code> CLI commands (<code>cairn status</code>, <code>cairn list decisions</code>) don't yet dispatch over HTTP. A human collaborator who wants to inspect the cairn from their own laptop without a Claude Code session has to ssh to the group machine or rely on the MCP-side tools. Closing this gap is the next planned step.</p>
+
+    <p><strong>Production HTTP deployment needs a process supervisor.</strong> A bare <code>nohup cairn mcp ... &amp;</code> isn't enough — long-running servers should be run under systemd, supervisord, or a Kubernetes Deployment. Documentation should ship a worked example service file alongside the existing transport docs.</p>
+
+    <p><strong>Authentication is deferred.</strong> Today the bearer token gets you onto the wire and the <code>author</code> parameter says who you are — they aren't bound. A user with a valid token can write as any collaborator. For a research group with reasonable trust this is fine, but production deployments need an authentication ADR that binds tokens to collaborator identities. The current posture is documented and intentional; the binding work is a future design pass.</p>
+
+    <p><strong>Plural authorship is in flight.</strong> When a decision genuinely belongs to two or three people — a meeting where the call was made collectively — today's schema forces a single <code>author</code>. ADR-0011 (multi-author attribution) drafts a richer authorship field; once it lands, the pair-and-trio cases get first-class representation.</p>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <p>Working draft for discussion · <a href="index.html">Back to the overview</a> · <a href="scenario-one-user-many-cairns.html">← The other scenario: one user, many cairns</a></p>
+</footer>
+
+</body>
+</html>
