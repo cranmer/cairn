@@ -36,7 +36,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 1000 cairn \
-    && useradd  --uid 1000 --gid cairn --create-home --shell /usr/sbin/nologin cairn
+    && useradd  --uid 1000 --gid cairn --create-home --shell /usr/sbin/nologin cairn \
+    && install -d -o cairn -g cairn /home/cairn/sandbox /home/cairn/.config/cairn
 
 WORKDIR /app
 COPY --from=builder --chown=cairn:cairn /app /app
