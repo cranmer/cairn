@@ -12,6 +12,7 @@ Each story includes acceptance criteria that can serve directly as the basis for
 - **US-P-NN** — Python package
 - **US-A-NN** — Agent / skill
 - **US-M-NN** — MCP server / chatbot
+- **US-T-NN** — Test-harness / dev tooling (the `cairn dev` subgroup; not part of the operator-facing surface)
 
 **Story format.** Each story names an *Actor* (the person or agent initiating the action), a one-sentence *Story* in standard "As a / I want / so that" form, and an *Expected behavior* block of testable bullet points.
 
@@ -404,7 +405,53 @@ These stories cover clients (chatbots, dashboards, agents in other environments)
 
 ---
 
-## §4 — Cross-Cutting Properties
+## §4 — Test-Harness Stories
+
+These stories cover the `cairn dev` subgroup — a CLI namespace that exists to make the multi-user/multi-cairn test methodology (`tests/agent_smoke/multi-user-multi-cairn/`) reproducible. They are *not* part of the operator-facing cairn workflow; a researcher running real projects should never need them. They are listed here so the contract they offer to test scripts is testable rather than implicit.
+
+### US-T-01: Run an HTTP MCP server for a test session
+
+**Actor**: Maintainer or test script setting up a multi-user/multi-cairn run
+**Story**: As a test runner, I want to spin up an HTTP MCP server in the background and tear it down cleanly so each run starts from a known baseline.
+
+**Expected behavior**
+- `cairn dev serve [--cairn-path <dir>] [--host 127.0.0.1] [--port N] [--path /mcp]` starts a `cairn mcp` HTTP server detached from the parent terminal (`start_new_session=True`) and returns immediately with `pid`, `port`, `url`, and a log path.
+- If `--port` is omitted, the server binds to a free port (bind-port-0) so multiple dev servers can coexist without manual port juggling.
+- Lifecycle state (one entry per running dev server: pid, port, url, cairn path, start time, log path) lives in `$XDG_CACHE_HOME/cairn/dev-servers/state.toml` so the parent terminal can exit and a later `cairn dev list` still sees the server.
+- `cairn dev list` prints all known dev servers; entries whose pid is no longer alive are pruned automatically before listing.
+- `cairn dev stop --pid N` stops one server; `cairn dev stop --all` stops every recorded dev server. Exactly one of the two flags must be passed; passing both or neither is a CLI error (exit 2).
+- `cairn dev stop` cleans up the per-pid sandbox directory (registry, scaffolded cairns) created by the dev-tools gate (see [ADR-0013](docs/decisions/0013-server-side-fixture-scaffold-tool.md)).
+- The dev server is always launched with the `--allow-dev-tools` gate so the server-side fixture-scaffold tool is reachable. Production `cairn mcp` deployments do not pass that flag.
+
+### US-T-02: Scaffold a test fixture (local or remote)
+
+**Actor**: Test runner needing a fictional project + paired cairn in a known state
+**Story**: As a test runner, I want to materialize one of the bundled fixtures so my sub-agents start from a deterministic project/cairn pairing rather than reinventing setup each run.
+
+**Expected behavior**
+- `cairn dev scaffold-fixture <name> --dest <dir>` produces `<dest>/projects/<name>/` (a fictional project repo with files, git history, and `cairn.toml`) and `<dest>/cairns/<name>/` (a cairn pre-seeded with the fixture's collaborators, decisions, open questions, and findings).
+- The known fixture names are a closed set defined in `cairn.dev.fixtures_data.FIXTURES` (today: `coral-bleach`, `lit-monitor`, `shared-physics-paper`). Unknown names fail with exit code 2 and a list of valid names.
+- `--http-endpoint <url>` writes a same-machine HTTP-paired `cairn.toml`; the cairn still scaffolds locally.
+- `--remote <url>` switches to truly-remote mode: the server-side `scaffold_fixture` MCP tool builds the cairn server-side ([ADR-0013](docs/decisions/0013-server-side-fixture-scaffold-tool.md)), and the client materializes only the project repo with `cairn.toml` pointing at the remote endpoint with the server-returned cairn name.
+- `--remote` falls back to the `CAIRN_DEV_REMOTE_URL` env var when no flag value is given (an empty env var counts as unset). A `.env.example` at the repo root documents the variable.
+- `--remote` and `--http-endpoint` are mutually exclusive; `--as <handle>` is only valid with `--remote` and registers the fixture under that cairn handle on the server.
+- In remote mode, before materializing the local project the client compares the server's returned fixture summary (collaborator IDs, decision/question/finding counts) against its own copy of `FIXTURES`; on drift it aborts with a clear message naming the divergent field rather than producing a half-broken pairing.
+
+### US-T-03: Inspect and compare the fixture catalog
+
+**Actor**: Test runner or operator about to use a remote dev server
+**Story**: As a test runner, I want to confirm my local `cairn` package and the dev server agree on the fixture catalog before I scaffold against it.
+
+**Expected behavior**
+- `cairn dev fixtures` (no args) lists the local fixture catalog with a compact summary per entry: collaborator count, decision count, question count, finding count.
+- `cairn dev fixtures --remote <url>` calls the dev MCP tool `list_fixtures` and prints a side-by-side table — fixture name, local summary, remote summary, status (`match`, `drift`, `client-missing`, `remote-missing`).
+- `--remote` falls back to `CAIRN_DEV_REMOTE_URL` the same way `cairn dev scaffold-fixture --remote` does.
+- Exit code is non-zero on any drift, so the command is usable as a pre-flight check in CI before a remote scaffold.
+- The `list_fixtures` MCP tool is registered only when `cairn mcp --allow-dev-tools` is set (same gate as `scaffold_fixture`); it is not discoverable on production deployments.
+
+---
+
+## §5 — Cross-Cutting Properties
 
 A handful of invariants hold across many stories above. These deserve their own tests beyond the per-story ones.
 
@@ -434,7 +481,7 @@ A read or write operation explicitly or implicitly scoped to a branch sees that 
 
 ---
 
-## §5 — Notes on Story Selection
+## §6 — Notes on Story Selection
 
 These stories cover the substantive surface area but are not exhaustive. A few categories are deliberately deferred:
 
