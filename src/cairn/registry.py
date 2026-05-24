@@ -160,10 +160,13 @@ def resolve_single_or_named(
         return cairns[0]
     if not cairns:
         raise RegistryError(
-            "no cairns registered. Run `cairn register <name> <path>` to add one, "
-            "or pass `cairn` explicitly to this tool."
+            "no cairns registered. Known: (none). "
+            "Add one with `cairn register <name> <path>`."
         )
     names = ", ".join(c.name for c in cairns)
     raise RegistryError(
-        f"multiple cairns registered ({names}); pass `cairn` explicitly to disambiguate."
+        f"multiple cairns registered. Known: {names}. "
+        f"Pass `cairn=<name>` on this call to choose one. "
+        f"If your client is running inside a project repo paired with a cairn "
+        f"via `cairn.toml`, use the `name` from that file."
     )

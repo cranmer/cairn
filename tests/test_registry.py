@@ -102,8 +102,16 @@ def test_resolve_single_or_named_requires_name_when_multiple(
         c = tmp_path / f"{name}-cairn"
         _make_cairn_root(c)
         register(name, c)
-    with pytest.raises(RegistryError, match="multiple cairns registered"):
+    with pytest.raises(RegistryError) as exc_info:
         resolve_single_or_named(None)
+    msg = str(exc_info.value)
+    assert "multiple cairns registered" in msg
+    # The error must list the registered cairn names so the caller knows what
+    # they can pass.
+    assert "Known: a, b" in msg
+    # And it must mention the cairn.toml-paired-cwd convention, which is the
+    # canonical way an in-repo agent knows which cairn to choose.
+    assert "cairn.toml" in msg
 
 
 def test_resolve_single_or_named_unknown_name(isolated_registry: Path, tmp_path: Path):
