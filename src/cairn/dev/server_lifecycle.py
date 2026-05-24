@@ -70,9 +70,26 @@ def _wait_for_port(host: str, port: int, timeout_s: float = 10.0) -> None:
 def _process_alive(pid: int) -> bool:
     try:
         os.kill(pid, 0)
-        return True
     except (ProcessLookupError, PermissionError):
         return False
+    # A zombie still answers signal 0 with success but is effectively dead.
+    # Treat it as not-alive so callers (and tests) see a coherent state.
+    try:
+        with open(f"/proc/{pid}/status") as fh:
+            for line in fh:
+                if line.startswith("State:"):
+                    return "Z" not in line.split(maxsplit=2)[1]
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def _reap_if_child(pid: int) -> None:
+    """Reap a child PID if we happen to be its parent. No-op otherwise."""
+    try:
+        os.waitpid(pid, os.WNOHANG)
+    except ChildProcessError:
+        pass
 
 
 def serve(
@@ -194,15 +211,24 @@ def stop(*, pid: int | None = None, all_: bool = False, timeout_s: float = 5.0) 
             os.kill(info.pid, signal.SIGTERM)
         except ProcessLookupError:
             sf.unlink(missing_ok=True)
+            _reap_if_child(info.pid)
             continue
         deadline = time.time() + timeout_s
         while time.time() < deadline and _process_alive(info.pid):
+            _reap_if_child(info.pid)
             time.sleep(0.1)
         if _process_alive(info.pid):
             try:
                 os.kill(info.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+            # Give the kernel a moment to flip state, then reap.
+            for _ in range(20):
+                _reap_if_child(info.pid)
+                if not _process_alive(info.pid):
+                    break
+                time.sleep(0.05)
+        _reap_if_child(info.pid)
         sf.unlink(missing_ok=True)
         stopped.append(info.pid)
     return stopped

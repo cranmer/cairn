@@ -100,3 +100,70 @@ def test_dev_serve_starts_detached_server_and_writes_state(
                 os.kill(pid, 15)
             except (FileNotFoundError, ProcessLookupError, KeyError):
                 pass
+
+
+def test_dev_stop_all_kills_running_servers_and_clears_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cache_home = tmp_path / "cache"
+    cache_home.mkdir()
+    monkeypatch.setenv("XDG_CACHE_HOME", str(cache_home))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+    cairn_dir = _bootstrap_cairn(tmp_path, monkeypatch)
+    runner = CliRunner()
+
+    # Start two servers.
+    r1 = runner.invoke(app, ["dev", "serve", "--cairn-path", str(cairn_dir)])
+    r2 = runner.invoke(app, ["dev", "serve", "--cairn-path", str(cairn_dir)])
+    assert r1.exit_code == 0, r1.output
+    assert r2.exit_code == 0, r2.output
+
+    state_dir = cache_home / "cairn" / "dev-servers"
+    pids_before = sorted(
+        json.loads(p.read_text())["pid"]
+        for p in state_dir.glob("*.json")
+        if p.parent == state_dir
+    )
+    assert len(pids_before) == 2
+
+    stop_result = runner.invoke(app, ["dev", "stop", "--all"])
+    assert stop_result.exit_code == 0, stop_result.output
+
+    # State files removed.
+    remaining = [p for p in state_dir.glob("*.json") if p.parent == state_dir]
+    assert remaining == [], remaining
+
+    # Processes gone.
+    for pid in pids_before:
+        with pytest.raises(ProcessLookupError):
+            os.kill(pid, 0)
+
+
+def test_dev_stop_by_pid_kills_one_server(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cache_home = tmp_path / "cache"
+    cache_home.mkdir()
+    monkeypatch.setenv("XDG_CACHE_HOME", str(cache_home))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+    cairn_dir = _bootstrap_cairn(tmp_path, monkeypatch)
+    runner = CliRunner()
+
+    r = runner.invoke(app, ["dev", "serve", "--cairn-path", str(cairn_dir)])
+    assert r.exit_code == 0, r.output
+    pid = int(
+        next(tok for tok in r.output.split() if tok.startswith("pid=")).split("=")[1]
+    )
+
+    stop_result = runner.invoke(app, ["dev", "stop", "--pid", str(pid)])
+    try:
+        assert stop_result.exit_code == 0, stop_result.output
+        with pytest.raises(ProcessLookupError):
+            os.kill(pid, 0)
+    finally:
+        try:
+            os.kill(pid, 15)
+        except ProcessLookupError:
+            pass

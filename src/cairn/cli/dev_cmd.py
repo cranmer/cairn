@@ -13,6 +13,7 @@ from pathlib import Path
 import typer
 
 from ..dev.server_lifecycle import serve as _serve_impl
+from ..dev.server_lifecycle import stop as _stop_impl
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -53,9 +54,21 @@ def serve(
 
 
 @app.command(name="stop")
-def stop() -> None:
-    """Stop one or all dev MCP servers. (Not yet implemented.)"""
-    raise typer.Exit(code=2)
+def stop(
+    pid: int | None = typer.Option(None, "--pid", help="Stop only this PID."),
+    all_: bool = typer.Option(
+        False, "--all", help="Stop every recorded dev server."
+    ),
+) -> None:
+    """Stop one or all dev MCP servers."""
+    if (pid is None) == (not all_):
+        typer.echo("error: pass exactly one of --pid or --all.", err=True)
+        raise typer.Exit(code=2)
+    stopped = _stop_impl(pid=pid, all_=all_)
+    if not stopped:
+        typer.echo("no dev servers to stop.")
+        return
+    typer.echo(f"stopped pids: {', '.join(str(p) for p in stopped)}")
 
 
 @app.command(name="scaffold-fixture")
