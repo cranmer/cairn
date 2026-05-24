@@ -432,3 +432,96 @@ def test_dev_fixtures_cli_remote_detects_drift(
     assert "remote-missing" in result.output
     assert "client-missing" in result.output
     assert "ghost-fixture" in result.output
+
+
+# ---------------------------------------------------------------------------
+# CAIRN_DEV_REMOTE_URL fallback (.env wire-up)
+# ---------------------------------------------------------------------------
+
+
+def test_dev_fixtures_falls_back_to_env_var(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Without --remote, CAIRN_DEV_REMOTE_URL drives the comparison."""
+    from typer.testing import CliRunner
+
+    from cairn.cli.app import app
+    from cairn.dev.fixtures_data import FIXTURES
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.setenv("CAIRN_DEV_REMOTE_URL", "http://srv.example.com/mcp")
+    monkeypatch.setenv("CAIRN_BEARER_TOKEN", "tok")
+
+    remote_payload = {
+        "fixtures": [
+            {
+                "name": name,
+                "summary": {
+                    "collaborators": [c.id for c in fix.collaborators],
+                    "decisions": len(fix.decisions),
+                    "questions": len(fix.questions),
+                    "findings": len(fix.findings),
+                },
+            }
+            for name, fix in FIXTURES.items()
+        ]
+    }
+    monkeypatch.setattr(
+        "cairn.mcp.remote.call_tool", _stub_call_tool_returning(remote_payload)
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["dev", "fixtures"])  # no --remote
+    assert result.exit_code == 0, result.output
+    # The remote-comparison header should appear (not the local-only listing).
+    assert "status" in result.output
+    assert "match" in result.output
+
+
+def test_dev_fixtures_explicit_remote_beats_env_var(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Explicit --remote URL is what gets dispatched to, not the env var."""
+    from typer.testing import CliRunner
+
+    from cairn.cli.app import app
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.setenv("CAIRN_DEV_REMOTE_URL", "http://wrong.example.com/mcp")
+    monkeypatch.setenv("CAIRN_BEARER_TOKEN", "tok")
+
+    captured: dict[str, str] = {}
+
+    def _capturing_stub(endpoint, tool_name, arguments, *, token=None):
+        captured["endpoint"] = endpoint
+        return {"fixtures": []}
+
+    monkeypatch.setattr("cairn.mcp.remote.call_tool", _capturing_stub)
+
+    runner = CliRunner()
+    runner.invoke(
+        app,
+        ["dev", "fixtures", "--remote", "http://right.example.com/mcp"],
+    )
+    assert captured["endpoint"] == "http://right.example.com/mcp"
+
+
+def test_dev_fixtures_empty_env_var_falls_through_to_local(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Empty CAIRN_DEV_REMOTE_URL is treated as unset; we print local catalog."""
+    from typer.testing import CliRunner
+
+    from cairn.cli.app import app
+    from cairn.dev.fixtures_data import FIXTURES
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.setenv("CAIRN_DEV_REMOTE_URL", "")
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["dev", "fixtures"])
+    assert result.exit_code == 0, result.output
+    # Local-only output has no "status" column header.
+    assert "status" not in result.output
+    for name in FIXTURES:
+        assert name in result.output

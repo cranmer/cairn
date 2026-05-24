@@ -8,6 +8,7 @@ workflow.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import typer
@@ -17,6 +18,19 @@ from ..dev.fixtures_data import FIXTURES
 from ..dev.server_lifecycle import list_servers as _list_impl
 from ..dev.server_lifecycle import serve as _serve_impl
 from ..dev.server_lifecycle import stop as _stop_impl
+
+_REMOTE_ENV_VAR = "CAIRN_DEV_REMOTE_URL"
+
+
+def _resolve_remote(remote_flag: str | None) -> str | None:
+    """Return *remote_flag* if set; otherwise fall back to CAIRN_DEV_REMOTE_URL.
+
+    Empty-string env var counts as unset.
+    """
+    if remote_flag:
+        return remote_flag
+    env_val = os.environ.get(_REMOTE_ENV_VAR)
+    return env_val or None
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -106,7 +120,9 @@ def fixtures(
         "--remote",
         help=(
             "Compare the local fixture catalog against a remote dev MCP "
-            "server at this URL. Without --remote, prints the local catalog."
+            "server at this URL. Defaults to the CAIRN_DEV_REMOTE_URL env "
+            "var if set (source .env for the project's dev server). "
+            "Without either, prints the local catalog."
         ),
     ),
 ) -> None:
@@ -116,6 +132,7 @@ def fixtures(
     that the client and server agree on fixture contents (see ADR-0013).
     """
     local = _summarize_local_catalog()
+    remote = _resolve_remote(remote)
 
     if not remote:
         for name in sorted(local):
@@ -202,7 +219,8 @@ def scaffold_fixture(
         help=(
             "Truly-remote mode: ask the dev MCP server at <URL> to scaffold "
             "the cairn server-side, and only materialize the project repo "
-            "locally. Mutually exclusive with --http-endpoint."
+            "locally. Defaults to the CAIRN_DEV_REMOTE_URL env var if set. "
+            "Mutually exclusive with --http-endpoint."
         ),
     ),
     as_name: str | None = typer.Option(
@@ -215,6 +233,7 @@ def scaffold_fixture(
     ),
 ) -> None:
     """Scaffold a fixture project + paired cairn under --dest."""
+    remote = _resolve_remote(remote)
     if name not in FIXTURES:
         typer.echo(
             f"error: unknown fixture {name!r}. Known: {', '.join(sorted(FIXTURES))}.",
