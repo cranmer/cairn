@@ -61,6 +61,17 @@ def mcp(
         "--path",
         help="URL path for the MCP endpoint in HTTP transports (default: /mcp).",
     ),
+    allowed_host: list[str] = typer.Option(
+        [],
+        "--allowed-host",
+        help=(
+            "Extra Host header values to accept for HTTP transports (repeatable). "
+            "Required when fronting the server with a reverse proxy under a public "
+            "hostname, since the MCP SDK's DNS-rebinding protection otherwise only "
+            "accepts 127.0.0.1/localhost. Example: "
+            "--allowed-host cairn.example.com"
+        ),
+    ),
 ) -> None:
     """Run the MCP server over stdio (default) or HTTP."""
     if transport not in _VALID_TRANSPORTS:
@@ -123,6 +134,34 @@ def mcp(
     # mcp>=1.27 takes host/port/path via settings, not run() kwargs.
     server.settings.host = host
     server.settings.port = port
+    if allowed_host:
+        # Extend the SDK's default localhost allowlist rather than replace it,
+        # so docker-internal health checks and Traefik's forwarded request both
+        # work. The SDK matches "host:*" against "host:port", so we add both
+        # the bare hostname (no port — matches Host: cairn.example.com) and
+        # a "host:*" variant for completeness.
+        from mcp.server.transport_security import TransportSecuritySettings
+        existing = server.settings.transport_security
+        existing_hosts = list(existing.allowed_hosts) if existing else []
+        existing_origins = list(existing.allowed_origins) if existing else []
+        for h in allowed_host:
+            if h not in existing_hosts:
+                existing_hosts.append(h)
+            wildcard = f"{h}:*"
+            if wildcard not in existing_hosts:
+                existing_hosts.append(wildcard)
+            for scheme in ("https", "http"):
+                origin = f"{scheme}://{h}"
+                if origin not in existing_origins:
+                    existing_origins.append(origin)
+                origin_wildcard = f"{scheme}://{h}:*"
+                if origin_wildcard not in existing_origins:
+                    existing_origins.append(origin_wildcard)
+        server.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=existing_hosts,
+            allowed_origins=existing_origins,
+        )
     if transport == "streamable-http":
         server.settings.streamable_http_path = path
         server.run(transport="streamable-http")
