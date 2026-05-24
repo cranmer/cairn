@@ -33,10 +33,7 @@ def serve(
     cairn_path: Path | None = typer.Option(
         None,
         "--cairn-path",
-        help=(
-            "Path to a cairn directory the server should serve "
-            "(passed through to `cairn mcp`)."
-        ),
+        help=("Path to a cairn directory the server should serve (passed through to `cairn mcp`)."),
         exists=True,
         file_okay=False,
         dir_okay=True,
@@ -51,17 +48,13 @@ def serve(
 ) -> None:
     """Start an HTTP MCP server in the background and print its connection info."""
     info = _serve_impl(cairn_path=cairn_path, host=host, port=port, path=path)
-    typer.echo(
-        f"started pid={info.pid} port={info.port} url={info.url} log={info.log_path}"
-    )
+    typer.echo(f"started pid={info.pid} port={info.port} url={info.url} log={info.log_path}")
 
 
 @app.command(name="stop")
 def stop(
     pid: int | None = typer.Option(None, "--pid", help="Stop only this PID."),
-    all_: bool = typer.Option(
-        False, "--all", help="Stop every recorded dev server."
-    ),
+    all_: bool = typer.Option(False, "--all", help="Stop every recorded dev server."),
 ) -> None:
     """Stop one or all dev MCP servers."""
     if (pid is None) == (not all_):
@@ -82,9 +75,7 @@ def list_() -> None:
         typer.echo("no dev servers running.")
         return
     for s in servers:
-        typer.echo(
-            f"pid={s.pid} port={s.port} url={s.url} cairn={s.cairn_path or '-'}"
-        )
+        typer.echo(f"pid={s.pid} port={s.port} url={s.url} cairn={s.cairn_path or '-'}")
 
 
 @app.command(name="scaffold-fixture")
@@ -103,29 +94,119 @@ def scaffold_fixture(
     http_endpoint: str | None = typer.Option(
         None,
         "--http-endpoint",
-        help="Required for HTTP-paired fixtures (e.g. shared-physics-paper).",
+        help=(
+            "Write an HTTP-paired cairn.toml pointing at this URL. The cairn "
+            "is still scaffolded locally — use --remote instead for a "
+            "server-side cairn."
+        ),
+    ),
+    remote: str | None = typer.Option(
+        None,
+        "--remote",
+        help=(
+            "Truly-remote mode: ask the dev MCP server at <URL> to scaffold "
+            "the cairn server-side, and only materialize the project repo "
+            "locally. Mutually exclusive with --http-endpoint."
+        ),
+    ),
+    as_name: str | None = typer.Option(
+        None,
+        "--as",
+        help=(
+            "Remote-mode only: register the fixture under this cairn handle "
+            "on the server instead of the fixture's default name."
+        ),
     ),
 ) -> None:
     """Scaffold a fixture project + paired cairn under --dest."""
     if name not in FIXTURES:
         typer.echo(
-            f"error: unknown fixture {name!r}. "
-            f"Known: {', '.join(sorted(FIXTURES))}.",
+            f"error: unknown fixture {name!r}. Known: {', '.join(sorted(FIXTURES))}.",
             err=True,
         )
         raise typer.Exit(code=2)
-    fix = FIXTURES[name]
-    if fix.paired_via_http and not http_endpoint:
+    if remote and http_endpoint:
         typer.echo(
-            f"error: fixture {name!r} requires --http-endpoint "
-            "(e.g. http://127.0.0.1:8765).",
+            "error: --remote and --http-endpoint are mutually exclusive.",
             err=True,
         )
         raise typer.Exit(code=2)
-    try:
-        project_dir, cairn_dir = _scaffold_impl(
-            name, dest, http_endpoint=http_endpoint
+    if as_name and not remote:
+        typer.echo(
+            "error: --as is only valid with --remote.",
+            err=True,
         )
+        raise typer.Exit(code=2)
+
+    if remote:
+        from ..credentials import missing_token_hint, resolve_token
+        from ..dev.fixtures import scaffold_project
+        from ..mcp.remote import (
+            RemoteAuthError,
+            RemoteCallError,
+            RemoteNetworkError,
+            call_tool,
+        )
+
+        token = resolve_token(remote)
+        if token is None:
+            typer.echo(f"error: {missing_token_hint(remote)}", err=True)
+            raise typer.Exit(code=1)
+        try:
+            result = call_tool(
+                remote,
+                "scaffold_fixture",
+                {"name": name, "as_name": as_name} if as_name else {"name": name},
+                token=token,
+            )
+        except RemoteAuthError as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
+        except RemoteNetworkError as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
+        except RemoteCallError as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
+
+        resolved_name = result.get("cairn")
+        summary = result.get("summary") or {}
+        if not resolved_name:
+            typer.echo(
+                f"error: remote did not return a cairn handle (got {result!r}).",
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        # Verify against the local fixture catalog so client/server drift
+        # surfaces before we materialize anything.
+        from ..dev.fixtures_data import FIXTURES as _LOCAL_FIXTURES
+
+        local_fix = _LOCAL_FIXTURES[name]
+        local_summary = {
+            "collaborators": [c.id for c in local_fix.collaborators],
+            "decisions": len(local_fix.decisions),
+            "questions": len(local_fix.questions),
+            "findings": len(local_fix.findings),
+        }
+        for key, expected in local_summary.items():
+            got = summary.get(key)
+            if got != expected:
+                typer.echo(
+                    f"error: fixture catalog drift between client and remote "
+                    f"on field {key!r}: local={expected!r}, remote={got!r}. "
+                    "Bump the cairn package on the older side.",
+                    err=True,
+                )
+                raise typer.Exit(code=1)
+
+        project_dir = dest / "projects" / name
+        scaffold_project(name, project_dir, http_endpoint=remote, cairn_name=resolved_name)
+        typer.echo(f"project={project_dir}")
+        typer.echo(f"remote_cairn={resolved_name} at {remote}")
+        return
+
+    try:
+        project_dir, cairn_dir = _scaffold_impl(name, dest, http_endpoint=http_endpoint)
     except Exception as exc:
         typer.echo(f"error: scaffold failed: {exc}", err=True)
         raise typer.Exit(code=1) from exc

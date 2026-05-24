@@ -41,7 +41,19 @@ class RegistryError(CairnError):
 
 
 def registry_path() -> Path:
-    """Resolve the registry file location, honoring XDG_CONFIG_HOME."""
+    """Resolve the registry file location.
+
+    Resolution order:
+
+    1. ``CAIRN_REGISTRY_PATH`` (explicit override — used by ``cairn dev
+       serve`` to give each dev server its own sandboxed registry; see
+       ADR-0013).
+    2. ``$XDG_CONFIG_HOME/cairn/server.toml`` if set.
+    3. ``~/.config/cairn/server.toml`` (default).
+    """
+    explicit = os.environ.get("CAIRN_REGISTRY_PATH")
+    if explicit:
+        return Path(explicit).expanduser()
     xdg = os.environ.get("XDG_CONFIG_HOME")
     base = Path(xdg) if xdg else Path.home() / ".config"
     return base / "cairn" / "server.toml"
@@ -55,20 +67,14 @@ def load_registry(path: Path | None = None) -> list[RegisteredCairn]:
     try:
         data = tomllib.loads(p.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as exc:
-        raise RegistryError(
-            f"registry file {p} is not valid TOML: {exc}"
-        ) from None
+        raise RegistryError(f"registry file {p} is not valid TOML: {exc}") from None
     cairns_section = data.get("cairns", {})
     if not isinstance(cairns_section, dict):
-        raise RegistryError(
-            f"registry file {p}: expected a [cairns] table"
-        )
+        raise RegistryError(f"registry file {p}: expected a [cairns] table")
     out: list[RegisteredCairn] = []
     for name, raw_path in sorted(cairns_section.items()):
         if not isinstance(raw_path, str):
-            raise RegistryError(
-                f"registry file {p}: value for '{name}' must be a string path"
-            )
+            raise RegistryError(f"registry file {p}: value for '{name}' must be a string path")
         out.append(RegisteredCairn(name=name, path=Path(raw_path).expanduser()))
     return out
 
@@ -137,9 +143,7 @@ def lookup(name: str, *, registry: Path | None = None) -> RegisteredCairn | None
     return None
 
 
-def resolve_single_or_named(
-    name: str | None, *, registry: Path | None = None
-) -> RegisteredCairn:
+def resolve_single_or_named(name: str | None, *, registry: Path | None = None) -> RegisteredCairn:
     """Resolve the cairn for a tool call.
 
     Single-cairn convenience: if ``name`` is None and the registry has exactly
@@ -160,8 +164,7 @@ def resolve_single_or_named(
         return cairns[0]
     if not cairns:
         raise RegistryError(
-            "no cairns registered. Known: (none). "
-            "Add one with `cairn register <name> <path>`."
+            "no cairns registered. Known: (none). Add one with `cairn register <name> <path>`."
         )
     names = ", ".join(c.name for c in cairns)
     raise RegistryError(

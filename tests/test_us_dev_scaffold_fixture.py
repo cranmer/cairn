@@ -47,24 +47,18 @@ def test_scaffold_fixture_local_pairing(
     assert "endpoint" not in toml_text
 
     # Collaborators seeded.
-    collaborators_yaml = yaml.safe_load(
-        (cairn_dir / "state" / "collaborators.yaml").read_text()
-    )
+    collaborators_yaml = yaml.safe_load((cairn_dir / "state" / "collaborators.yaml").read_text())
     actual_ids = sorted(c["id"] for c in collaborators_yaml)
     assert actual_ids == sorted(expected_collaborators)
 
     # At least one decision and one open question.
     decisions = yaml.safe_load((cairn_dir / "state" / "decisions.yaml").read_text())
     assert len(decisions) >= 1
-    questions = yaml.safe_load(
-        (cairn_dir / "state" / "open_questions.yaml").read_text()
-    )
+    questions = yaml.safe_load((cairn_dir / "state" / "open_questions.yaml").read_text())
     assert len(questions) >= 1
 
 
-def test_scaffold_fixture_http_pairing(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_scaffold_fixture_http_pairing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """shared-physics-paper uses HTTP pairing — cairn.toml must include endpoint."""
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
 
@@ -73,9 +67,13 @@ def test_scaffold_fixture_http_pairing(
     result = runner.invoke(
         app,
         [
-            "dev", "scaffold-fixture", "shared-physics-paper",
-            "--dest", str(tmp_path / "run"),
-            "--http-endpoint", endpoint,
+            "dev",
+            "scaffold-fixture",
+            "shared-physics-paper",
+            "--dest",
+            str(tmp_path / "run"),
+            "--http-endpoint",
+            endpoint,
         ],
     )
     assert result.exit_code == 0, result.output
@@ -86,10 +84,36 @@ def test_scaffold_fixture_http_pairing(
     assert 'name = "shared-physics-paper"' in toml_text
 
 
-def test_scaffold_fixture_http_pairing_requires_endpoint(
+def test_scaffold_fixture_remote_and_http_endpoint_are_exclusive(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Without --http-endpoint, the http fixture should error clearly."""
+    """Per ADR-0013, --remote and --http-endpoint cannot be combined."""
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "dev",
+            "scaffold-fixture",
+            "coral-bleach",
+            "--dest",
+            str(tmp_path / "run"),
+            "--http-endpoint",
+            "http://127.0.0.1:8765/mcp",
+            "--remote",
+            "http://127.0.0.1:8765/mcp",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output.lower()
+
+
+def test_scaffold_fixture_local_works_without_endpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per ADR-0013, paired_via_http was retired — every fixture works in
+    local mode without --http-endpoint."""
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
 
     runner = CliRunner()
@@ -97,8 +121,10 @@ def test_scaffold_fixture_http_pairing_requires_endpoint(
         app,
         ["dev", "scaffold-fixture", "shared-physics-paper", "--dest", str(tmp_path / "run")],
     )
-    assert result.exit_code != 0
-    assert "endpoint" in result.output.lower()
+    assert result.exit_code == 0, result.output
+    toml_text = (tmp_path / "run" / "projects" / "shared-physics-paper" / "cairn.toml").read_text()
+    assert 'name = "shared-physics-paper"' in toml_text
+    assert "endpoint" not in toml_text
 
 
 def test_scaffold_fixture_unknown_name_errors_clearly(

@@ -1,10 +1,11 @@
 """`cairn mcp` — run the MCP server over stdio or HTTP.
 
-See ADR-0009, ADR-0010, and ADR-0012. Requires the ``[mcp]`` install extra.
+See ADR-0009, ADR-0010, ADR-0012, and ADR-0013. Requires the ``[mcp]`` install extra.
 """
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import typer
@@ -72,6 +73,32 @@ def mcp(
             "--allowed-host cairn.example.com"
         ),
     ),
+    registry_path: Path | None = typer.Option(
+        None,
+        "--registry-path",
+        help=(
+            "Override the registry file location for this server only. "
+            "Sets CAIRN_REGISTRY_PATH in-process. Used by `cairn dev serve` "
+            "to give each dev server its own sandboxed registry (ADR-0013)."
+        ),
+    ),
+    allow_dev_tools: bool = typer.Option(
+        False,
+        "--allow-dev-tools",
+        help=(
+            "Register dev-only MCP tools (currently: scaffold_fixture). "
+            "Off by default; production deployments must NOT pass this. "
+            "`cairn dev serve` always passes it (ADR-0013)."
+        ),
+    ),
+    sandbox_path: Path | None = typer.Option(
+        None,
+        "--sandbox-path",
+        help=(
+            "Directory under which the scaffold_fixture dev tool writes "
+            "cairns. Required when --allow-dev-tools is set."
+        ),
+    ),
 ) -> None:
     """Run the MCP server over stdio (default) or HTTP."""
     if transport not in _VALID_TRANSPORTS:
@@ -81,6 +108,16 @@ def mcp(
             err=True,
         )
         raise typer.Exit(code=1)
+
+    if registry_path is not None:
+        os.environ["CAIRN_REGISTRY_PATH"] = str(registry_path.expanduser())
+
+    if allow_dev_tools and sandbox_path is None:
+        typer.echo(
+            "error: --allow-dev-tools requires --sandbox-path.",
+            err=True,
+        )
+        raise typer.Exit(code=2)
 
     try:
         from ..mcp.server import _ensure_registry_loadable, build_server
@@ -125,7 +162,10 @@ def mcp(
         registry_mod.load_registry = patched_load_registry  # type: ignore[assignment]
 
     _ensure_registry_loadable()
-    server = build_server()
+    server = build_server(
+        allow_dev_tools=allow_dev_tools,
+        sandbox_path=sandbox_path,
+    )
 
     if transport == "stdio":
         server.run()
@@ -141,6 +181,7 @@ def mcp(
         # the bare hostname (no port — matches Host: cairn.example.com) and
         # a "host:*" variant for completeness.
         from mcp.server.transport_security import TransportSecuritySettings
+
         existing = server.settings.transport_security
         existing_hosts = list(existing.allowed_hosts) if existing else []
         existing_origins = list(existing.allowed_origins) if existing else []
@@ -176,5 +217,6 @@ def _default_name_for(p: Path) -> str:
     if base.endswith("-cairn"):
         base = base[: -len("-cairn")]
     import re
+
     base = re.sub(r"[^a-z0-9-]+", "-", base.lower()).strip("-")
     return base or "cairn"

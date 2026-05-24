@@ -31,6 +31,8 @@ class ServerInfo:
     cairn_path: str | None
     log_path: str
     started_at: float
+    sandbox_path: str | None = None
+    registry_path: str | None = None
 
 
 def _state_dir() -> Path:
@@ -63,9 +65,7 @@ def _wait_for_port(host: str, port: int, timeout_s: float = 10.0) -> None:
             time.sleep(0.1)
         finally:
             sock.close()
-    raise TimeoutError(
-        f"server on {host}:{port} did not accept connections within {timeout_s}s"
-    )
+    raise TimeoutError(f"server on {host}:{port} did not accept connections within {timeout_s}s")
 
 
 def _process_alive(pid: int) -> bool:
@@ -102,6 +102,10 @@ def serve(
 
     Returns a :class:`ServerInfo` describing the running server. Writes
     ``{state_dir}/{pid}.json`` so ``stop()`` and ``list_servers()`` can find it.
+
+    Dev servers always run with ``--allow-dev-tools`` and a sandboxed
+    per-process registry under ``$XDG_CACHE_HOME/cairn/dev-servers/<pid>/``
+    (see ADR-0013).
     """
     if port is None:
         port = _pick_free_port(host)
@@ -110,6 +114,15 @@ def serve(
     log_dir = state_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / f"{int(time.time())}-{port}.log"
+
+    # Per-server sandbox + registry. Created here; cleaned by stop().
+    # We use the port as a stable handle since the PID isn't known until
+    # after Popen; the directory is renamed at the end if a PID-based
+    # name is more useful (no — we just keep port-based naming).
+    sandbox_root = state_dir / f"sandbox-{port}"
+    sandbox_dir = sandbox_root / "cairns"
+    sandbox_dir.mkdir(parents=True, exist_ok=True)
+    registry_file = sandbox_root / "registry.toml"
 
     cmd = [
         sys.executable,
@@ -124,6 +137,11 @@ def serve(
         str(port),
         "--path",
         path,
+        "--registry-path",
+        str(registry_file),
+        "--allow-dev-tools",
+        "--sandbox-path",
+        str(sandbox_dir),
     ]
     if cairn_path is not None:
         cmd.extend(["--cairn-path", str(cairn_path)])
@@ -155,6 +173,8 @@ def serve(
         cairn_path=str(cairn_path) if cairn_path is not None else None,
         log_path=str(log_path),
         started_at=time.time(),
+        sandbox_path=str(sandbox_root),
+        registry_path=str(registry_file),
     )
 
     state_file = state_dir / f"{proc.pid}.json"
@@ -165,8 +185,11 @@ def serve(
 def list_servers() -> list[ServerInfo]:
     """Return all dev servers recorded in the state dir.
 
-    Stale entries (process no longer alive) are pruned as a side effect.
+    Stale entries (process no longer alive) are pruned as a side effect,
+    along with their sandbox directories.
     """
+    import shutil
+
     servers: list[ServerInfo] = []
     for sf in sorted(_state_dir().glob("*.json")):
         try:
@@ -175,6 +198,8 @@ def list_servers() -> list[ServerInfo]:
         except (json.JSONDecodeError, TypeError):
             continue
         if not _process_alive(info.pid):
+            if info.sandbox_path:
+                shutil.rmtree(info.sandbox_path, ignore_errors=True)
             sf.unlink(missing_ok=True)
             continue
         servers.append(info)
@@ -223,5 +248,9 @@ def stop(*, pid: int | None = None, all_: bool = False, timeout_s: float = 5.0) 
                 time.sleep(0.05)
         _reap_if_child(info.pid)
         sf.unlink(missing_ok=True)
+        if info.sandbox_path:
+            import shutil
+
+            shutil.rmtree(info.sandbox_path, ignore_errors=True)
         stopped.append(info.pid)
     return stopped

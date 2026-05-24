@@ -18,6 +18,7 @@ defaults to that one; otherwise it's required.
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from git import Repo
@@ -135,13 +136,12 @@ def _validate_related(paths: CairnPaths, related: list[str]) -> None:
     id_index = state.id_index()
     bad = [r for r in related if r not in id_index]
     if bad:
-        raise RegistryError(
-            f"--related refers to unknown entity ids: {', '.join(bad)}"
-        )
+        raise RegistryError(f"--related refers to unknown entity ids: {', '.join(bad)}")
 
 
 def _slugify(text: str) -> str:
     import re
+
     s = re.sub(r"[^a-z0-9]+", "-", text.lower().strip()).strip("-")
     return s[:60] or "untitled"
 
@@ -186,8 +186,20 @@ live capture begins.
 """
 
 
-def build_server() -> FastMCP:
-    """Construct the FastMCP server and register the Tier-1 tools."""
+def build_server(
+    *,
+    allow_dev_tools: bool = False,
+    sandbox_path: Path | None = None,
+) -> FastMCP:
+    """Construct the FastMCP server and register tools.
+
+    When ``allow_dev_tools`` is True, dev-only tools are also registered;
+    ``sandbox_path`` is required and constrains where those tools write
+    on disk. See ADR-0013.
+    """
+    if allow_dev_tools and sandbox_path is None:
+        raise ValueError("build_server: allow_dev_tools requires sandbox_path")
+
     mcp = FastMCP(name="cairn", instructions=SERVER_INSTRUCTIONS)
 
     # ---- Identity / status ------------------------------------------------
@@ -211,8 +223,7 @@ def build_server() -> FastMCP:
             "git_email": suggested.get("git_email"),
             "suggested_id": suggested.get("suggested_id"),
             "collaborators": [
-                {"id": c.id, "name": c.name, "email": c.email, "github": c.github}
-                for c in collabs
+                {"id": c.id, "name": c.name, "email": c.email, "github": c.github} for c in collabs
             ],
         }
 
@@ -222,6 +233,7 @@ def build_server() -> FastMCP:
         state = state_for_branch(paths, None)
         snap = build_status(paths, state, branch="current")
         import json
+
         result = json.loads(render_json(snap))
         # When the cairn is essentially empty, hint that the
         # bootstrap_from_repo skill may apply.
@@ -236,7 +248,8 @@ def build_server() -> FastMCP:
             "If it sits alongside an existing code repo, consider running the "
             "`bootstrap_from_repo` skill (see `list_skills` / `get_skill`) "
             "before live capture to seed the cairn from the repo's history."
-            if is_empty else None
+            if is_empty
+            else None
         )
         return result
 
@@ -329,9 +342,7 @@ def build_server() -> FastMCP:
         _validate_author(paths, author)
         _validate_related(paths, related)
         state = load_state(paths)
-        if supersedes is not None and not any(
-            d.id == supersedes for d in state.decisions
-        ):
+        if supersedes is not None and not any(d.id == supersedes for d in state.decisions):
             raise RegistryError(f"--supersedes refers to unknown decision: {supersedes}")
 
         new_id = next_id("D", state.decision_ids())
@@ -580,9 +591,9 @@ def build_server() -> FastMCP:
             "- `group` — a named multi-person aggregate (`consensus`, "
             "`core-team`). Use when authorship is shared and no single "
             "human is the primary author.\n"
-            "- `unknown` — explicit \"we don't know who authored this\" "
+            '- `unknown` — explicit "we don\'t know who authored this" '
             "placeholder. The `bootstrap_from_repo` skill uses "
-            "`id=\"repo-history\"` for findings extracted from project "
+            '`id="repo-history"` for findings extracted from project '
             "docs / TODO markers / commit history."
         )
     )
@@ -855,9 +866,7 @@ def build_server() -> FastMCP:
         entry, paths = _resolve(cairn_name)
         _validate_author(paths, author)
         existing = (
-            paths.project_md.read_text(encoding="utf-8")
-            if paths.project_md.is_file()
-            else ""
+            paths.project_md.read_text(encoding="utf-8") if paths.project_md.is_file() else ""
         )
         if not existing:
             # Seed a minimal PROJECT.md with the H1 from the cairn name.
@@ -906,7 +915,8 @@ def build_server() -> FastMCP:
         if query:
             q = query.lower()
             decisions = [
-                d for d in decisions
+                d
+                for d in decisions
                 if q in d.decision.lower() or (d.context and q in d.context.lower())
             ]
         if limit:
@@ -976,10 +986,7 @@ def build_server() -> FastMCP:
         return out
 
     @mcp.tool(
-        description=(
-            "Fetch a single finding (frontmatter + full markdown body) "
-            "by slug or path."
-        )
+        description=("Fetch a single finding (frontmatter + full markdown body) by slug or path.")
     )
     def get_finding(
         cairn: str | None = None,
@@ -996,15 +1003,15 @@ def build_server() -> FastMCP:
         elif slug:
             # If date given, exact match; else pick the most recent with that slug.
             candidates = [
-                p for p in paths.findings.iterdir()
+                p
+                for p in paths.findings.iterdir()
                 if p.is_file() and p.name.endswith(f"-{slug}.md")
             ]
             if date:
                 candidates = [p for p in candidates if p.name.startswith(date + "-")]
             if not candidates:
                 raise RegistryError(
-                    f"no finding with slug '{slug}'"
-                    + (f" on {date}" if date else "")
+                    f"no finding with slug '{slug}'" + (f" on {date}" if date else "")
                 )
             target = max(candidates, key=lambda p: p.name)
         else:
@@ -1045,6 +1052,7 @@ def build_server() -> FastMCP:
             update={"status": "answered", "answered_by": answered_by}
         )
         from ..io.state_io import write_questions
+
         write_questions(paths, questions)
         repo = Repo(paths.root)
         sha = commit(
@@ -1091,9 +1099,7 @@ def build_server() -> FastMCP:
         branch_name = f"{as_id}/{slug}"
         repo = Repo(paths.root)
         if branch_name in [h.name for h in repo.heads]:
-            raise RegistryError(
-                f"exploration '{branch_name}' already exists (git branch present)"
-            )
+            raise RegistryError(f"exploration '{branch_name}' already exists (git branch present)")
 
         today = datetime.now(timezone.utc).date().isoformat()
         manifest_path = paths.explorations / as_id / f"{slug}.md"
@@ -1165,9 +1171,7 @@ def build_server() -> FastMCP:
         if main_name is None:
             raise RegistryError("could not locate 'main' or 'master' in the cairn")
         if status == "merged" and not is_merged:
-            raise RegistryError(
-                f"'{name}' is not an ancestor of '{main_name}'; merge first"
-            )
+            raise RegistryError(f"'{name}' is not an ancestor of '{main_name}'; merge first")
         # Switch to main first
         repo.git.checkout(main_name)
         manifest_rel = f"explorations/{owner}/{slug}.md"
@@ -1182,9 +1186,7 @@ def build_server() -> FastMCP:
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(updated_manifest, encoding="utf-8")
         readme_path = paths.explorations / "README.md"
-        _move_explorations_readme_row(
-            readme_path, name, owner, closed_at, status, reason.strip()
-        )
+        _move_explorations_readme_row(readme_path, name, owner, closed_at, status, reason.strip())
         sha = commit(
             repo,
             [readme_path, manifest_path],
@@ -1250,7 +1252,70 @@ def build_server() -> FastMCP:
             "content": text,
         }
 
+    if allow_dev_tools:
+        _register_dev_tools(mcp, sandbox_path)  # type: ignore[arg-type]
+
     return mcp
+
+
+def _register_dev_tools(mcp: FastMCP, sandbox: Path) -> None:
+    """Register dev-only tools on ``mcp``. Gated by ``cairn mcp --allow-dev-tools``.
+
+    Per ADR-0013: tools accept a fixture *name* (whitelist lookup
+    against ``cairn.dev.fixtures_data``) and scaffold into the
+    server-internal ``sandbox`` directory only. Paths from the wire are
+    rejected.
+    """
+    from ..dev.fixtures import scaffold_cairn
+    from ..dev.fixtures_data import FIXTURES
+    from ..registry import (
+        NAME_PATTERN,
+        register,
+    )
+    from ..registry import (
+        RegistryError as _RegistryError,
+    )
+
+    sandbox = sandbox.expanduser().resolve()
+    sandbox.mkdir(parents=True, exist_ok=True)
+
+    @mcp.tool(
+        description=(
+            "Dev-only: scaffold a known fixture cairn server-side and "
+            "register it. `name` must be one of the fixtures shipped in "
+            "`cairn.dev.fixtures_data`. `as_name` (optional) sets the "
+            "registered cairn handle; defaults to the fixture name. "
+            "Returns {cairn, fixture, summary} where summary lets the "
+            "client verify its local fixture catalog matches the server's."
+        )
+    )
+    def scaffold_fixture(name: str, as_name: str | None = None) -> dict[str, Any]:
+        if name not in FIXTURES:
+            raise _RegistryError(f"unknown fixture {name!r}. Known: {', '.join(sorted(FIXTURES))}.")
+        cairn_name = as_name or name
+        if not NAME_PATTERN.match(cairn_name):
+            raise _RegistryError(
+                f"invalid cairn name {cairn_name!r}: must match {NAME_PATTERN.pattern}."
+            )
+        cairn_dir = sandbox / cairn_name
+        if cairn_dir.exists():
+            raise _RegistryError(
+                f"a cairn already exists at handle {cairn_name!r}. "
+                f"Pick a different `as_name` or remove the existing "
+                f"sandbox entry."
+            )
+        summary = scaffold_cairn(name, cairn_dir)
+        register(cairn_name, cairn_dir)
+        return {
+            "cairn": cairn_name,
+            "fixture": name,
+            "summary": {
+                "collaborators": summary["collaborators"],
+                "decisions": summary["decisions"],
+                "questions": summary["questions"],
+                "findings": summary["findings"],
+            },
+        }
 
 
 def _extract_skill_description(text: str) -> str | None:

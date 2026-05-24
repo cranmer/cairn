@@ -77,29 +77,22 @@ _CORAL_BLEACH = Fixture(
         ),
     ],
     collaborators=[
-        FixtureCollaborator(
-            id="kyle", name="Kyle", role="PI", email="kyle@example.com"
-        ),
-        FixtureCollaborator(
-            id="lila", name="Lila", role="postdoc", email="lila@example.com"
-        ),
+        FixtureCollaborator(id="kyle", name="Kyle", role="PI", email="kyle@example.com"),
+        FixtureCollaborator(id="lila", name="Lila", role="postdoc", email="lila@example.com"),
     ],
     decisions=[
         FixtureDecision(
             text="Adopt PIT-tagged colonies as the primary monitoring unit.",
             author="kyle",
             context=(
-                "Replaces ad-hoc transect labels; tags give unambiguous "
-                "identity across years."
+                "Replaces ad-hoc transect labels; tags give unambiguous identity across years."
             ),
         ),
     ],
     questions=[
         FixtureQuestion(
             id="Q-001",
-            question=(
-                "Should 2018 baseline use pre-bleach or post-bleach surveys?"
-            ),
+            question=("Should 2018 baseline use pre-bleach or post-bleach surveys?"),
             raised_by="lila",
         ),
     ],
@@ -109,8 +102,7 @@ _CORAL_BLEACH = Fixture(
             title="2024 bleaching event extent across transects",
             author="kyle",
             body=(
-                "Stress affected T1 and T3 most heavily; T2 showed partial "
-                "recovery by September."
+                "Stress affected T1 and T3 most heavily; T2 showed partial recovery by September."
             ),
         ),
     ],
@@ -173,9 +165,7 @@ _LIT_MONITOR = Fixture(
         ),
     ],
     collaborators=[
-        FixtureCollaborator(
-            id="kyle", name="Kyle", role="lead", email="kyle@example.com"
-        ),
+        FixtureCollaborator(id="kyle", name="Kyle", role="lead", email="kyle@example.com"),
         FixtureCollaborator(
             id="priya",
             name="Priya",
@@ -188,17 +178,14 @@ _LIT_MONITOR = Fixture(
             text="Use arXiv API + journal RSS, not Google Scholar.",
             author="priya",
             context=(
-                "Scholar's terms forbid systematic scraping; arXiv + RSS "
-                "covers our scope cleanly."
+                "Scholar's terms forbid systematic scraping; arXiv + RSS covers our scope cleanly."
             ),
         ),
     ],
     questions=[
         FixtureQuestion(
             id="Q-001",
-            question=(
-                "Should we track preprints separately from published versions?"
-            ),
+            question=("Should we track preprints separately from published versions?"),
             raised_by="kyle",
         ),
     ],
@@ -267,9 +254,7 @@ _SHARED_PHYSICS = Fixture(
             role="analysis lead",
             email="morgan@example.com",
         ),
-        FixtureCollaborator(
-            id="sam", name="Sam", role="writeup lead", email="sam@example.com"
-        ),
+        FixtureCollaborator(id="sam", name="Sam", role="writeup lead", email="sam@example.com"),
         FixtureCollaborator(
             id="repo-history",
             name="repo history",
@@ -279,23 +264,17 @@ _SHARED_PHYSICS = Fixture(
     ],
     decisions=[
         FixtureDecision(
-            text=(
-                "Use the V+jets control region for background estimation."
-            ),
+            text=("Use the V+jets control region for background estimation."),
             author="alex",
             context=(
-                "V+jets gives the cleanest extrapolation; alternatives have "
-                "larger MC dependence."
+                "V+jets gives the cleanest extrapolation; alternatives have larger MC dependence."
             ),
         ),
     ],
     questions=[
         FixtureQuestion(
             id="Q-001",
-            question=(
-                "Are the JER systematics double-counted in the smoothing "
-                "prescription?"
-            ),
+            question=("Are the JER systematics double-counted in the smoothing prescription?"),
             raised_by="morgan",
         ),
     ],
@@ -304,13 +283,9 @@ _SHARED_PHYSICS = Fixture(
             slug="fit-converges-on-toys",
             title="Fit converges on toys",
             author="alex",
-            body=(
-                "No pulls > 2 sigma on the nominal nuisance set; convergence "
-                "rate 99.4%."
-            ),
+            body=("No pulls > 2 sigma on the nominal nuisance set; convergence rate 99.4%."),
         ),
     ],
-    paired_via_http=True,
 )
 
 

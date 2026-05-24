@@ -75,7 +75,6 @@ class Fixture:
     decisions: list[FixtureDecision]
     questions: list[FixtureQuestion]
     findings: list[FixtureFinding]
-    paired_via_http: bool = False  # scenario 2 uses HTTP cairn.toml
 
 
 def _cairn_cmd() -> list[str]:
@@ -85,9 +84,7 @@ def _cairn_cmd() -> list[str]:
     return [sys.executable, "-m", "cairn"]
 
 
-def _run(
-    cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None
-) -> None:
+def _run(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
     subprocess.run(
         cmd,
         cwd=cwd,
@@ -97,62 +94,44 @@ def _run(
     )
 
 
-def scaffold_fixture(
+def scaffold_project(
     name: str,
-    dest_dir: Path,
+    project_dir: Path,
     *,
     http_endpoint: str | None = None,
-) -> tuple[Path, Path]:
-    """Materialize a fixture project + paired cairn.
+    cairn_name: str | None = None,
+) -> Path:
+    """Materialize the project-repo half of a fixture.
 
-    Returns ``(project_dir, cairn_dir)``.
+    Writes project files, runs git init + the fixture's commit history,
+    and writes ``cairn.toml`` pairing the repo with a cairn.
 
-    ``dest_dir`` will contain:
-
-    - ``<dest_dir>/projects/<name>/`` — the fictional project repo with
-      ``cairn.toml`` pairing.
-    - ``<dest_dir>/cairns/<name>/`` — the cairn itself.
-
-    ``http_endpoint`` is only meaningful when the fixture has
-    ``paired_via_http=True``; the resulting ``cairn.toml`` points at it.
+    - ``http_endpoint`` writes an HTTP-paired ``cairn.toml`` pointing at
+      that URL; omit for a local-path-paired ``cairn.toml``.
+    - ``cairn_name`` overrides the cairn handle stored in ``cairn.toml``
+      (useful when the remote registered the cairn under a different
+      handle than the fixture's local name). Defaults to ``name``.
     """
     from .fixtures_data import FIXTURES
 
     if name not in FIXTURES:
         raise KeyError(f"unknown fixture {name!r}; known: {sorted(FIXTURES)}")
     fix = FIXTURES[name]
+    resolved_cairn_name = cairn_name or fix.name
 
-    project_dir = dest_dir / "projects" / fix.name
-    cairn_parent = dest_dir / "cairns"
-    cairn_dir = cairn_parent / fix.name
     project_dir.mkdir(parents=True, exist_ok=True)
-    cairn_parent.mkdir(parents=True, exist_ok=True)
 
-    # 1. Write the project files.
     for f in fix.project_files:
         target = project_dir / f.relpath
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(textwrap.dedent(f.content))
 
-    # 2. Init the cairn via `cairn init` so we exercise the same code path
-    #    real users hit. `cairn init <name>` creates `<cwd>/<name>` — so
-    #    we run it from the cairns/ parent.
-    _run([*_cairn_cmd(), "init", fix.name, "--no-input"], cwd=cairn_parent)
-
-    # 3. Write cairn.toml pairing (uses the [cairn] table per ADR-0012).
-    if fix.paired_via_http:
-        if not http_endpoint:
-            raise ValueError(f"fixture {name!r} requires http_endpoint")
-        cairn_toml = (
-            "[cairn]\n"
-            f'endpoint = "{http_endpoint}"\n'
-            f'name = "{fix.name}"\n'
-        )
+    if http_endpoint:
+        cairn_toml = f'[cairn]\nendpoint = "{http_endpoint}"\nname = "{resolved_cairn_name}"\n'
     else:
-        cairn_toml = f"[cairn]\nname = \"{fix.name}\"\n"
+        cairn_toml = f'[cairn]\nname = "{resolved_cairn_name}"\n'
     (project_dir / "cairn.toml").write_text(cairn_toml)
 
-    # 4. Git init + synthesized commits in the project dir.
     _run(["git", "init", "-q", "-b", "main"], cwd=project_dir)
     for commit in fix.commits:
         for relpath in commit.files:
@@ -164,7 +143,6 @@ def scaffold_fixture(
                 "GIT_AUTHOR_EMAIL": commit.author_email,
                 "GIT_COMMITTER_NAME": commit.author_name,
                 "GIT_COMMITTER_EMAIL": commit.author_email,
-                # Don't sign synthetic commits.
                 "GIT_CONFIG_GLOBAL": "/dev/null",
             }
         )
@@ -173,10 +151,37 @@ def scaffold_fixture(
             cwd=project_dir,
             env=env,
         )
+    return project_dir
 
-    # 5. Seed cairn state via the CLI (so schemas validate by
-    #    construction). cairn collaborator/decision/finding are scoped
-    #    to a cairn root; we cd into cairn_dir for each.
+
+def scaffold_cairn(
+    name: str,
+    cairn_dir: Path,
+) -> dict:
+    """Materialize the cairn half of a fixture.
+
+    Runs ``cairn init`` at ``cairn_dir`` (which must not already exist)
+    and seeds collaborators, decisions, open questions, and findings.
+    Returns a summary dict suitable for client-side verification:
+
+        {"fixture": name,
+         "collaborators": [<ids>],
+         "decisions": <int>,
+         "questions": <int>,
+         "findings": <int>}
+    """
+    from .fixtures_data import FIXTURES
+
+    if name not in FIXTURES:
+        raise KeyError(f"unknown fixture {name!r}; known: {sorted(FIXTURES)}")
+    fix = FIXTURES[name]
+
+    cairn_parent = cairn_dir.parent
+    cairn_parent.mkdir(parents=True, exist_ok=True)
+    # `cairn init <name>` creates `<cwd>/<name>` — run it from the parent
+    # and let the CLI pick the directory name.
+    _run([*_cairn_cmd(), "init", cairn_dir.name, "--no-input"], cwd=cairn_parent)
+
     for c in fix.collaborators:
         cmd = [
             *_cairn_cmd(),
@@ -195,10 +200,6 @@ def scaffold_fixture(
             cmd.extend(["--email", c.email])
         _run(cmd, cwd=cairn_dir)
 
-    # Open questions don't have a CLI yet — write directly into
-    # state/open_questions.yaml. The file is a top-level YAML list.
-    # Tagged as a stopgap; once `cairn open-question add` lands,
-    # collapse this into the same _run pattern as the others.
     if fix.questions:
         _seed_open_questions(cairn_dir, fix.questions)
 
@@ -236,6 +237,44 @@ def scaffold_fixture(
             cmd.extend(["--related", r])
         _run(cmd, cwd=cairn_dir)
 
+    return {
+        "fixture": name,
+        "collaborators": [c.id for c in fix.collaborators],
+        "decisions": len(fix.decisions),
+        "questions": len(fix.questions),
+        "findings": len(fix.findings),
+    }
+
+
+def scaffold_fixture(
+    name: str,
+    dest_dir: Path,
+    *,
+    http_endpoint: str | None = None,
+) -> tuple[Path, Path]:
+    """Materialize a fixture project + paired cairn on the local machine.
+
+    Returns ``(project_dir, cairn_dir)``. Produces:
+
+    - ``<dest_dir>/projects/<name>/`` — fictional project repo with
+      ``cairn.toml`` pairing.
+    - ``<dest_dir>/cairns/<name>/`` — the cairn itself.
+
+    ``http_endpoint`` makes ``cairn.toml`` an HTTP-paired one pointing at
+    that URL; omit for a local-path-paired ``cairn.toml``. Either way,
+    the cairn is also scaffolded locally — for a truly-remote setup
+    where the cairn lives on the server, use ``scaffold_project`` alone
+    and let the server materialize the cairn via its MCP tool.
+    """
+    from .fixtures_data import FIXTURES
+
+    if name not in FIXTURES:
+        raise KeyError(f"unknown fixture {name!r}; known: {sorted(FIXTURES)}")
+
+    project_dir = dest_dir / "projects" / name
+    cairn_dir = dest_dir / "cairns" / name
+    scaffold_project(name, project_dir, http_endpoint=http_endpoint)
+    scaffold_cairn(name, cairn_dir)
     return project_dir, cairn_dir
 
 
