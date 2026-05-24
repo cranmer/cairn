@@ -8,7 +8,11 @@ workflow.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import typer
+
+from ..dev.server_lifecycle import serve as _serve_impl
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -21,9 +25,31 @@ app = typer.Typer(
 
 
 @app.command(name="serve")
-def serve() -> None:
-    """Start an HTTP MCP server in the background. (Not yet implemented.)"""
-    raise typer.Exit(code=2)
+def serve(
+    cairn_path: Path | None = typer.Option(
+        None,
+        "--cairn-path",
+        help=(
+            "Path to a cairn directory the server should serve "
+            "(passed through to `cairn mcp`)."
+        ),
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+    ),
+    host: str = typer.Option("127.0.0.1", "--host"),
+    port: int | None = typer.Option(
+        None,
+        "--port",
+        help="Port to bind. Default: pick a free one with bind-port-0.",
+    ),
+    path: str = typer.Option("/mcp", "--path"),
+) -> None:
+    """Start an HTTP MCP server in the background and print its connection info."""
+    info = _serve_impl(cairn_path=cairn_path, host=host, port=port, path=path)
+    typer.echo(
+        f"started pid={info.pid} port={info.port} url={info.url} log={info.log_path}"
+    )
 
 
 @app.command(name="stop")
