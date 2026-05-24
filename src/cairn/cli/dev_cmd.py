@@ -12,6 +12,7 @@ from pathlib import Path
 
 import typer
 
+from ..dev.server_lifecycle import list_servers as _list_impl
 from ..dev.server_lifecycle import serve as _serve_impl
 from ..dev.server_lifecycle import stop as _stop_impl
 
@@ -69,6 +70,19 @@ def stop(
         typer.echo("no dev servers to stop.")
         return
     typer.echo(f"stopped pids: {', '.join(str(p) for p in stopped)}")
+
+
+@app.command(name="list")
+def list_() -> None:
+    """List running dev MCP servers."""
+    servers = _list_impl()
+    if not servers:
+        typer.echo("no dev servers running.")
+        return
+    for s in servers:
+        typer.echo(
+            f"pid={s.pid} port={s.port} url={s.url} cairn={s.cairn_path or '-'}"
+        )
 
 
 @app.command(name="scaffold-fixture")

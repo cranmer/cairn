@@ -140,6 +140,34 @@ def test_dev_stop_all_kills_running_servers_and_clears_state(
             os.kill(pid, 0)
 
 
+def test_dev_list_reports_running_servers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cache_home = tmp_path / "cache"
+    cache_home.mkdir()
+    monkeypatch.setenv("XDG_CACHE_HOME", str(cache_home))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+    cairn_dir = _bootstrap_cairn(tmp_path, monkeypatch)
+    runner = CliRunner()
+
+    list_empty = runner.invoke(app, ["dev", "list"])
+    assert list_empty.exit_code == 0
+    assert "no dev servers" in list_empty.output.lower()
+
+    r = runner.invoke(app, ["dev", "serve", "--cairn-path", str(cairn_dir)])
+    pid = int(
+        next(tok for tok in r.output.split() if tok.startswith("pid=")).split("=")[1]
+    )
+    try:
+        list_one = runner.invoke(app, ["dev", "list"])
+        assert list_one.exit_code == 0, list_one.output
+        assert str(pid) in list_one.output
+        assert "http://127.0.0.1:" in list_one.output
+    finally:
+        runner.invoke(app, ["dev", "stop", "--all"])
+
+
 def test_dev_stop_by_pid_kills_one_server(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
