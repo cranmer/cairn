@@ -1,5 +1,11 @@
 # Fixtures — fictional project skeletons
 
+> **Source of truth:** the structured definition lives in
+> `src/cairn/dev/fixtures_data.py`. This README is the human-readable
+> mirror. If you change one, change the other in the same commit.
+> `cairn dev scaffold-fixture <name> --dest <dir>` materializes a
+> fixture from the structured definition.
+
 The scenarios use three fictional research projects as stand-ins for
 real cairn-paired repos. Each is small enough to scaffold in a tmpdir
 from a spec (a list of files + content) rather than being a checked-in
