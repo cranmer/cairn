@@ -128,6 +128,8 @@ This writes a small `cairn.toml` at the project repo root naming which cairn (by
 
 For Scenario A, your "project repo" may not exist yet; you can run `cairn link` later when it does. For Scenario B, do it now.
 
+> **Pairing with a remote cairn instead?** If the cairn you want to use lives on someone else's machine — a shared group box, a colleague's laptop — they run `cairn mcp --transport streamable-http` (typically behind a reverse proxy) and you pair with it via `cairn link --endpoint <url> --name <handle>`. The full operator + client guide is in [`docs/remote-mcp.md`](docs/remote-mcp.md). The rest of this quickstart assumes the local case.
+
 ## Step 6 — Open a session and check it works
 
 Open Claude Code in your project repo (Scenario B) or the cairn directory (Scenario A) and ask:
