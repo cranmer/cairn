@@ -461,7 +461,7 @@ These stories cover the `cairn dev` subgroup — a CLI namespace that exists to 
 - A directory that was already removed (manual cleanup, prior crash) is not an error: the registry entry is dropped and `removed_path: null` is returned.
 - `cairn dev unregister-fixture <name> --remote <url>` wraps the MCP tool, falling back to `CAIRN_DEV_REMOTE_URL` when `--remote` is omitted. Without either, the CLI exits 2 with a helpful error (the command applies only to fixtures scaffolded onto a remote server; locally-scaffolded fixtures are removed with `rm -rf` or `cairn unregister`).
 - `--keep-files` forwards to the MCP tool.
-- `--project-dir <dir>` is an optional client-side step: after the server-side unregister succeeds, the CLI verifies `<dir>/cairn.toml` exists and its `name` matches `<name>`, then deletes the directory. A missing or mismatched `cairn.toml` is a refusal (exit 1), not a silent skip. The server is never told the path.
+- `--project-dir <dir>` is an optional client-side step: *before* dispatching the server call, the CLI verifies `<dir>/cairn.toml` exists and its `name` matches `<name>`; a mismatched or malformed `cairn.toml` refuses the whole operation (exit 1) without contacting the server, so a typo'd path can't trigger an irreversible server-side unregister. A nonexistent `<dir>` is a warning, not a refusal — the remote call still proceeds. On a clean pre-flight the remote call runs and, on success, the directory is removed. The server is never told the path.
 
 ---
 

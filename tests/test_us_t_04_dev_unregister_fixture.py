@@ -509,8 +509,9 @@ def test_dev_unregister_fixture_cli_refuses_mismatched_project_dir(
         ],
     )
     assert result.exit_code == 1
-    # Server-side step still happened — the refusal is purely client-side.
-    assert len(calls) == 1
+    # Refusal happens *before* the server is contacted — a mismatched
+    # --project-dir must not trigger an irreversible server-side unregister.
+    assert calls == []
     # Local dir is untouched.
     assert project_dir.exists()
     assert "does not match" in result.output
@@ -564,6 +565,8 @@ def test_dev_unregister_fixture_cli_refuses_project_dir_without_cairn_toml(
     assert result.exit_code == 1
     assert "no cairn.toml found" in result.output
     assert project_dir.exists()
+    # Refusal is pre-flight: no server call dispatched.
+    assert calls == []
 
 
 def test_dev_unregister_fixture_cli_reports_idempotent_no_op(

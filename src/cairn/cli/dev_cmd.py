@@ -357,8 +357,9 @@ def unregister_fixture(
         help=(
             "Client-side cleanup: also rm -rf this local project repo after "
             "the server unregisters the cairn. The CLI verifies "
-            "<dir>/cairn.toml exists and its `name` matches before deleting; "
-            "any mismatch is a refusal."
+            "<dir>/cairn.toml exists and its `name` matches *before* "
+            "calling the server, so a typo can't trigger an irreversible "
+            "server-side unregister."
         ),
         file_okay=False,
         dir_okay=True,
@@ -376,6 +377,14 @@ def unregister_fixture(
             err=True,
         )
         raise typer.Exit(code=2)
+
+    # Validate --project-dir before touching the server: a wrong-shape path
+    # must refuse the whole operation, not just the local cleanup half,
+    # because the server-side unregister + sandbox delete is irreversible.
+    # A missing directory is treated as "nothing to clean" (warn, no exit),
+    # matching the pre-check spirit: only paths that look paired-but-wrong
+    # are refusals.
+    do_local_cleanup = project_dir is not None and _precheck_project_dir(project_dir, name)
 
     from ..credentials import missing_token_hint, resolve_token
     from ..mcp.remote import (
@@ -422,15 +431,28 @@ def unregister_fixture(
     elif unregistered and kept_files:
         typer.echo("server kept the cairn directory (--keep-files).")
 
-    if project_dir is None:
-        return
+    if do_local_cleanup:
+        assert project_dir is not None  # narrowed by do_local_cleanup
+        shutil.rmtree(project_dir)
+        typer.echo(f"removed local project dir: {project_dir}")
 
+
+def _precheck_project_dir(project_dir: Path, expected_name: str) -> bool:
+    """Validate ``<project_dir>/cairn.toml`` names *expected_name*.
+
+    Returns True when the dir is shaped like a paired project repo and
+    should be removed after a successful server-side unregister. Returns
+    False (with a warning) when the directory simply doesn't exist —
+    nothing to clean is not an error. Calls ``typer.Exit(1)`` for any
+    other shape (no ``cairn.toml``, malformed TOML, mismatched name) so
+    a typo can't trigger an irreversible server-side delete.
+    """
     if not project_dir.is_dir():
         typer.echo(
             f"warning: --project-dir {project_dir} is not a directory; "
             "nothing to clean locally.",
         )
-        return
+        return False
 
     cairn_toml = project_dir / "cairn.toml"
     if not cairn_toml.is_file():
@@ -458,13 +480,12 @@ def unregister_fixture(
 
     cairn_section = toml_data.get("cairn") or {}
     toml_name = cairn_section.get("name") if isinstance(cairn_section, dict) else None
-    if toml_name != name:
+    if toml_name != expected_name:
         typer.echo(
             f"error: refusing to delete {project_dir}: cairn.toml name "
-            f"{toml_name!r} does not match {name!r}.",
+            f"{toml_name!r} does not match {expected_name!r}.",
             err=True,
         )
         raise typer.Exit(code=1)
 
-    shutil.rmtree(project_dir)
-    typer.echo(f"removed local project dir: {project_dir}")
+    return True

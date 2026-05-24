@@ -91,11 +91,15 @@ cairn dev unregister-fixture <name>
 
 The optional `--project-dir <dir>` flag is a **client-side** convenience for
 the smoke-test harness simulating a collaborator's laptop. When supplied, the
-CLI — after the server-side call returns — checks that `<dir>/cairn.toml`
-exists and its `name` matches `<name>`, then `shutil.rmtree(dir)`. A
-mismatched or missing `cairn.toml` is a refusal, not a silent skip; the user
-asked to delete a specific paired project and the CLI either does so safely
-or stops. The server is never told the path.
+CLI checks that `<dir>/cairn.toml` exists and its `name` matches `<name>`
+*before* dispatching the server-side call — a typo'd path must not trigger
+an irreversible server-side unregister + sandbox delete. If the pre-flight
+passes, the CLI then makes the remote call and, on success, `shutil.rmtree(dir)`.
+A mismatched or malformed `cairn.toml` is a refusal (exit 1) with the server
+left untouched; the user asked to delete a specific paired project and the
+CLI either does so safely or stops. A directory that simply doesn't exist
+is treated as "nothing to clean" — the remote call still goes through, since
+no local state can be corrupted by it. The server is never told the path.
 
 ### Gating
 
