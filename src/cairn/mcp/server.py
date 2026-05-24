@@ -80,21 +80,42 @@ def _validate_author(paths: CairnPaths, author: str) -> None:
         )
 
 
+def _caller_email_from_headers() -> str | None:
+    """Read the caller's git email from the X-Cairn-Git-Email request header.
+
+    Returns None when running over stdio (no Starlette request) or when the
+    header is absent — callers fall back to local ``git config`` in that case.
+    """
+    try:
+        from mcp.server.lowlevel.server import request_ctx
+
+        rc = request_ctx.get()
+        request = getattr(rc, "request", None)
+        if request is None:
+            return None
+        value = request.headers.get("x-cairn-git-email")
+        return value.strip() if value else None
+    except Exception:
+        return None
+
+
 def _suggest_collaborator_match(paths: CairnPaths, collabs: list) -> dict[str, Any]:
     """Try to suggest which existing collaborator matches the calling git user."""
     import subprocess
 
-    try:
-        result = subprocess.run(
-            ["git", "config", "--get", "user.email"],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=5,
-        )
-        git_email = result.stdout.strip() if result.returncode == 0 else None
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        git_email = None
+    git_email = _caller_email_from_headers()
+    if not git_email:
+        try:
+            result = subprocess.run(
+                ["git", "config", "--get", "user.email"],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=5,
+            )
+            git_email = result.stdout.strip() if result.returncode == 0 else None
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            git_email = None
 
     suggested_id: str | None = None
     if git_email:
