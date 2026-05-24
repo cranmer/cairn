@@ -84,14 +84,32 @@ def _cairn_cmd() -> list[str]:
     return [sys.executable, "-m", "cairn"]
 
 
+def _dev_env() -> dict[str, str]:
+    """Process env with synthetic git identity defaults filled in.
+
+    Containerized dev MCP servers usually have no global git config; without
+    this every `cairn init`, `cairn decision add`, etc. would fail at the
+    initial commit with NoUserIdentityError. Real env values take precedence.
+    """
+    env = dict(os.environ)
+    env.setdefault("GIT_AUTHOR_NAME", "Cairn Dev")
+    env.setdefault("GIT_AUTHOR_EMAIL", "dev@cairn.local")
+    env.setdefault("GIT_COMMITTER_NAME", env["GIT_AUTHOR_NAME"])
+    env.setdefault("GIT_COMMITTER_EMAIL", env["GIT_AUTHOR_EMAIL"])
+    return env
+
+
 def _run(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
-    subprocess.run(
-        cmd,
-        cwd=cwd,
-        env=env,
-        check=True,
-        capture_output=True,
-    )
+    result = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True)
+    if result.returncode != 0:
+        detail = (
+            result.stderr.decode(errors="replace").strip()
+            or result.stdout.decode(errors="replace").strip()
+            or "(no output)"
+        )
+        raise RuntimeError(
+            f"{' '.join(cmd)} exited {result.returncode}: {detail}"
+        )
 
 
 def scaffold_project(
@@ -178,9 +196,17 @@ def scaffold_cairn(
 
     cairn_parent = cairn_dir.parent
     cairn_parent.mkdir(parents=True, exist_ok=True)
+    # Inject a synthetic git identity so scaffolding works in containers
+    # / CI where no global git config is set; `cairn init` and any later
+    # git-touching cairn subcommand otherwise fail with NoUserIdentityError.
+    dev_env = _dev_env()
     # `cairn init <name>` creates `<cwd>/<name>` — run it from the parent
     # and let the CLI pick the directory name.
-    _run([*_cairn_cmd(), "init", cairn_dir.name, "--no-input"], cwd=cairn_parent)
+    _run(
+        [*_cairn_cmd(), "init", cairn_dir.name, "--no-input"],
+        cwd=cairn_parent,
+        env=dev_env,
+    )
 
     for c in fix.collaborators:
         cmd = [
@@ -198,10 +224,10 @@ def scaffold_cairn(
         ]
         if c.email:
             cmd.extend(["--email", c.email])
-        _run(cmd, cwd=cairn_dir)
+        _run(cmd, cwd=cairn_dir, env=dev_env)
 
     if fix.questions:
-        _seed_open_questions(cairn_dir, fix.questions)
+        _seed_open_questions(cairn_dir, fix.questions, env=dev_env)
 
     for d in fix.decisions:
         cmd = [
@@ -217,7 +243,7 @@ def scaffold_cairn(
             cmd.extend(["--context", d.context])
         for r in d.related:
             cmd.extend(["--related", r])
-        _run(cmd, cwd=cairn_dir)
+        _run(cmd, cwd=cairn_dir, env=dev_env)
 
     for f in fix.findings:
         cmd = [
@@ -235,7 +261,7 @@ def scaffold_cairn(
             cmd.extend(["--body", f.body])
         for r in f.related:
             cmd.extend(["--related", r])
-        _run(cmd, cwd=cairn_dir)
+        _run(cmd, cwd=cairn_dir, env=dev_env)
 
     return {
         "fixture": name,
@@ -278,7 +304,12 @@ def scaffold_fixture(
     return project_dir, cairn_dir
 
 
-def _seed_open_questions(cairn_dir: Path, questions: list[FixtureQuestion]) -> None:
+def _seed_open_questions(
+    cairn_dir: Path,
+    questions: list[FixtureQuestion],
+    *,
+    env: dict[str, str] | None = None,
+) -> None:
     """Direct file write — no CLI for open questions exists yet."""
     oq_file = cairn_dir / "state" / "open_questions.yaml"
     existing = yaml.safe_load(oq_file.read_text()) or []
@@ -300,8 +331,9 @@ def _seed_open_questions(cairn_dir: Path, questions: list[FixtureQuestion]) -> N
     oq_file.write_text(yaml.safe_dump(existing, sort_keys=False))
     # Stage + commit so the cairn stays in a clean state for downstream
     # commands.
-    _run(["git", "add", str(oq_file.relative_to(cairn_dir))], cwd=cairn_dir)
+    _run(["git", "add", str(oq_file.relative_to(cairn_dir))], cwd=cairn_dir, env=env)
     _run(
         ["git", "commit", "-q", "-m", "Seed fixture open questions"],
         cwd=cairn_dir,
+        env=env,
     )

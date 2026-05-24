@@ -19,8 +19,48 @@ from pathlib import Path
 import pytest
 import yaml
 
-from cairn.dev.fixtures import scaffold_cairn, scaffold_project
+from cairn.dev.fixtures import _run, scaffold_cairn, scaffold_project
 from cairn.registry import load_registry, registry_path
+
+
+def test_scaffold_cairn_works_without_ambient_git_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: server containers have no global git config — scaffold_cairn
+    must inject a synthetic identity so `cairn init`'s initial commit succeeds."""
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    # Strip every signal `get_user_identity()` consults.
+    for var in (
+        "GIT_AUTHOR_NAME",
+        "GIT_AUTHOR_EMAIL",
+        "GIT_COMMITTER_NAME",
+        "GIT_COMMITTER_EMAIL",
+    ):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(tmp_path / "empty-gitconfig"))
+    monkeypatch.setenv("GIT_CONFIG_SYSTEM", "/dev/null")
+
+    cairn_dir = tmp_path / "cairns" / "coral-bleach"
+    scaffold_cairn("coral-bleach", cairn_dir)
+
+    assert (cairn_dir / "state" / "collaborators.yaml").is_file()
+
+
+def test_run_surfaces_subprocess_stderr(tmp_path: Path) -> None:
+    """Regression: when a subprocess fails, _run must propagate its stderr
+    in the raised exception so MCP callers see what actually went wrong."""
+    with pytest.raises(RuntimeError) as exc_info:
+        _run(
+            [
+                "python3" if Path("/usr/bin/python3").exists() else "python",
+                "-c",
+                "import sys; sys.stderr.write('boom: specific failure'); sys.exit(7)",
+            ],
+            cwd=tmp_path,
+        )
+    msg = str(exc_info.value)
+    assert "exited 7" in msg
+    assert "boom: specific failure" in msg
 
 
 def test_scaffold_cairn_seeds_state_and_returns_summary(
