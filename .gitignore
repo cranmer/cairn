@@ -222,3 +222,7 @@ __marimo__/
 
 # hatch-vcs writes this file at build time; the version is derived from git, not stored
 src/cairn/_version.py
+
+# Claude Code per-user state (settings.json itself stays committable if shared)
+.claude/settings.local.json
+.claude/worktrees/

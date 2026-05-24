@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | grep -E '\\.py$' | xargs -r -I {} sh -c 'uvx ruff check --fix --quiet \"{}\" >/dev/null 2>&1; uvx ruff format --quiet \"{}\" >/dev/null 2>&1; true'"
+          }
+        ]
+      }
+    ]
+  }
+}
