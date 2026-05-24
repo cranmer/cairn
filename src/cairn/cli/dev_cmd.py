@@ -12,6 +12,8 @@ from pathlib import Path
 
 import typer
 
+from ..dev.fixtures import scaffold_fixture as _scaffold_impl
+from ..dev.fixtures_data import FIXTURES
 from ..dev.server_lifecycle import list_servers as _list_impl
 from ..dev.server_lifecycle import serve as _serve_impl
 from ..dev.server_lifecycle import stop as _stop_impl
@@ -86,6 +88,46 @@ def list_() -> None:
 
 
 @app.command(name="scaffold-fixture")
-def scaffold_fixture() -> None:
-    """Scaffold a fixture project + cairn. (Not yet implemented.)"""
-    raise typer.Exit(code=2)
+def scaffold_fixture(
+    name: str = typer.Argument(
+        ...,
+        help=f"Fixture to scaffold. Known: {', '.join(sorted(FIXTURES))}.",
+    ),
+    dest: Path = typer.Option(
+        ...,
+        "--dest",
+        help="Destination dir; receives projects/<name>/ and cairns/<name>/.",
+        file_okay=False,
+        dir_okay=True,
+    ),
+    http_endpoint: str | None = typer.Option(
+        None,
+        "--http-endpoint",
+        help="Required for HTTP-paired fixtures (e.g. shared-physics-paper).",
+    ),
+) -> None:
+    """Scaffold a fixture project + paired cairn under --dest."""
+    if name not in FIXTURES:
+        typer.echo(
+            f"error: unknown fixture {name!r}. "
+            f"Known: {', '.join(sorted(FIXTURES))}.",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+    fix = FIXTURES[name]
+    if fix.paired_via_http and not http_endpoint:
+        typer.echo(
+            f"error: fixture {name!r} requires --http-endpoint "
+            "(e.g. http://127.0.0.1:8765).",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+    try:
+        project_dir, cairn_dir = _scaffold_impl(
+            name, dest, http_endpoint=http_endpoint
+        )
+    except Exception as exc:
+        typer.echo(f"error: scaffold failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"project={project_dir}")
+    typer.echo(f"cairn={cairn_dir}")
