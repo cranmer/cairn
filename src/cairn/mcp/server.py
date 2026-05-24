@@ -1287,11 +1287,15 @@ def _register_dev_tools(mcp: FastMCP, sandbox: Path) -> None:
     server-internal ``sandbox`` directory only. Paths from the wire are
     rejected.
     """
+    import shutil
+
     from ..dev.fixtures import scaffold_cairn
     from ..dev.fixtures_data import FIXTURES
     from ..registry import (
         NAME_PATTERN,
+        lookup,
         register,
+        unregister,
     )
     from ..registry import (
         RegistryError as _RegistryError,
@@ -1360,6 +1364,65 @@ def _register_dev_tools(mcp: FastMCP, sandbox: Path) -> None:
                 }
                 for name, fix in sorted(FIXTURES.items())
             ],
+        }
+
+    @mcp.tool(
+        description=(
+            "Dev-only: unregister a previously-scaffolded fixture cairn from "
+            "this server's dev registry, and (by default) remove its "
+            "directory under the server's sandbox. Idempotent: unregistering "
+            "a name that isn't registered returns "
+            "{unregistered: false, reason: 'not_registered'} without "
+            "raising. Pass keep_files=true to drop only the registry entry "
+            "and leave the cairn directory on disk. Per ADR-0015, deletes "
+            "only paths under the server's sandbox; paths outside are "
+            "preserved and reported with reason='path_outside_sandbox'."
+        )
+    )
+    def unregister_fixture(name: str, keep_files: bool = False) -> dict[str, Any]:
+        entry = lookup(name)
+        if entry is None:
+            return {
+                "unregistered": False,
+                "cairn": name,
+                "removed_path": None,
+                "kept_files": True,
+                "reason": "not_registered",
+            }
+
+        cairn_path = entry.path.expanduser().resolve()
+        unregister(name)
+
+        if keep_files:
+            return {
+                "unregistered": True,
+                "cairn": name,
+                "removed_path": None,
+                "kept_files": True,
+                "reason": None,
+            }
+
+        if not cairn_path.is_relative_to(sandbox):
+            return {
+                "unregistered": True,
+                "cairn": name,
+                "removed_path": None,
+                "kept_files": True,
+                "reason": "path_outside_sandbox",
+            }
+
+        if cairn_path.is_dir():
+            shutil.rmtree(cairn_path)
+            removed = str(cairn_path)
+        else:
+            removed = None
+
+        return {
+            "unregistered": True,
+            "cairn": name,
+            "removed_path": removed,
+            "kept_files": False,
+            "reason": None,
         }
 
 

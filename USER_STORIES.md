@@ -449,6 +449,20 @@ These stories cover the `cairn dev` subgroup — a CLI namespace that exists to 
 - Exit code is non-zero on any drift, so the command is usable as a pre-flight check in CI before a remote scaffold.
 - The `list_fixtures` MCP tool is registered only when `cairn mcp --allow-dev-tools` is set (same gate as `scaffold_fixture`); it is not discoverable on production deployments.
 
+### US-T-04: Unregister a remotely-scaffolded fixture
+
+**Actor**: Test runner needing to rewind one fixture without restarting the dev server
+**Story**: As a test runner, I want to unregister a fixture cairn on a remote dev MCP server (and optionally clean up the paired local project repo) so a single scenario can be reset between assertions without killing the whole server.
+
+**Expected behavior**
+- The dev MCP server exposes an `unregister_fixture(name, keep_files=false)` tool, gated by the same `--allow-dev-tools` flag as `scaffold_fixture` and `list_fixtures` (see [ADR-0015](docs/decisions/0015-dev-unregister-fixture.md)).
+- The tool returns `{unregistered, cairn, removed_path, kept_files, reason}`. When the name isn't in the dev registry, it returns `{unregistered: false, reason: "not_registered"}` without raising — idempotent so teardown scripts can run twice.
+- When `keep_files` is false (the default), the tool removes the cairn's directory from the server's sandbox. It refuses to delete paths that resolve outside the sandbox, returning `reason: "path_outside_sandbox"` instead.
+- A directory that was already removed (manual cleanup, prior crash) is not an error: the registry entry is dropped and `removed_path: null` is returned.
+- `cairn dev unregister-fixture <name> --remote <url>` wraps the MCP tool, falling back to `CAIRN_DEV_REMOTE_URL` when `--remote` is omitted. Without either, the CLI exits 2 with a helpful error (the command applies only to fixtures scaffolded onto a remote server; locally-scaffolded fixtures are removed with `rm -rf` or `cairn unregister`).
+- `--keep-files` forwards to the MCP tool.
+- `--project-dir <dir>` is an optional client-side step: after the server-side unregister succeeds, the CLI verifies `<dir>/cairn.toml` exists and its `name` matches `<name>`, then deletes the directory. A missing or mismatched `cairn.toml` is a refusal (exit 1), not a silent skip. The server is never told the path.
+
 ---
 
 ## §5 — Cross-Cutting Properties

@@ -327,3 +327,144 @@ def scaffold_fixture(
         raise typer.Exit(code=1) from exc
     typer.echo(f"project={project_dir}")
     typer.echo(f"cairn={cairn_dir}")
+
+
+@app.command(name="unregister-fixture")
+def unregister_fixture(
+    name: str = typer.Argument(
+        ...,
+        help="Cairn handle to unregister from the remote dev server.",
+    ),
+    remote: str | None = typer.Option(
+        None,
+        "--remote",
+        help=(
+            "Dev MCP server endpoint. Defaults to the CAIRN_DEV_REMOTE_URL "
+            "env var if set."
+        ),
+    ),
+    keep_files: bool = typer.Option(
+        False,
+        "--keep-files",
+        help=(
+            "Drop the registry entry but leave the cairn directory in the "
+            "server's sandbox in place."
+        ),
+    ),
+    project_dir: Path | None = typer.Option(
+        None,
+        "--project-dir",
+        help=(
+            "Client-side cleanup: also rm -rf this local project repo after "
+            "the server unregisters the cairn. The CLI verifies "
+            "<dir>/cairn.toml exists and its `name` matches before deleting; "
+            "any mismatch is a refusal."
+        ),
+        file_okay=False,
+        dir_okay=True,
+    ),
+) -> None:
+    """Unregister a fixture cairn on a remote dev MCP server (ADR-0015)."""
+    import shutil
+
+    remote = _resolve_remote(remote)
+    if not remote:
+        typer.echo(
+            "error: --remote is required (or set CAIRN_DEV_REMOTE_URL). "
+            "Fixtures scaffolded without --remote aren't registered "
+            "anywhere; use `rm -rf` or `cairn unregister` for those.",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    from ..credentials import missing_token_hint, resolve_token
+    from ..mcp.remote import (
+        RemoteAuthError,
+        RemoteCallError,
+        RemoteNetworkError,
+        call_tool,
+    )
+
+    token = resolve_token(remote)
+    if token is None:
+        typer.echo(f"error: {missing_token_hint(remote)}", err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        result = call_tool(
+            remote,
+            "unregister_fixture",
+            {"name": name, "keep_files": keep_files},
+            token=token,
+        )
+    except (RemoteAuthError, RemoteNetworkError, RemoteCallError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from None
+
+    unregistered = bool(result.get("unregistered"))
+    removed_path = result.get("removed_path")
+    kept_files = bool(result.get("kept_files"))
+    reason = result.get("reason")
+
+    if unregistered:
+        typer.echo(f"unregistered cairn={name} on {remote}")
+    else:
+        typer.echo(
+            f"cairn={name} was not registered on {remote} (no-op)"
+        )
+    if removed_path:
+        typer.echo(f"removed server sandbox dir: {removed_path}")
+    elif unregistered and kept_files and reason == "path_outside_sandbox":
+        typer.echo(
+            "server kept the cairn directory: it resolved outside the "
+            "server sandbox (refused to delete)."
+        )
+    elif unregistered and kept_files:
+        typer.echo("server kept the cairn directory (--keep-files).")
+
+    if project_dir is None:
+        return
+
+    if not project_dir.is_dir():
+        typer.echo(
+            f"warning: --project-dir {project_dir} is not a directory; "
+            "nothing to clean locally.",
+        )
+        return
+
+    cairn_toml = project_dir / "cairn.toml"
+    if not cairn_toml.is_file():
+        typer.echo(
+            f"error: refusing to delete {project_dir}: no cairn.toml found. "
+            "Pass a project repo that was paired to this fixture.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    try:
+        import tomllib  # Python 3.11+
+    except ImportError:  # pragma: no cover — exercised on 3.10 only
+        import tomli as tomllib  # type: ignore[no-redef]
+
+    try:
+        toml_data = tomllib.loads(cairn_toml.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as exc:
+        typer.echo(
+            f"error: refusing to delete {project_dir}: cairn.toml is not "
+            f"valid TOML ({exc}).",
+            err=True,
+        )
+        raise typer.Exit(code=1) from None
+
+    cairn_section = toml_data.get("cairn") or {}
+    toml_name = cairn_section.get("name") if isinstance(cairn_section, dict) else None
+    if toml_name != name:
+        typer.echo(
+            f"error: refusing to delete {project_dir}: cairn.toml name "
+            f"{toml_name!r} does not match {name!r}.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    shutil.rmtree(project_dir)
+    typer.echo(f"removed local project dir: {project_dir}")
