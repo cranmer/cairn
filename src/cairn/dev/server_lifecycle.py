@@ -9,6 +9,7 @@ up without needing the original ``serve`` invocation.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import signal
@@ -86,10 +87,8 @@ def _process_alive(pid: int) -> bool:
 
 def _reap_if_child(pid: int) -> None:
     """Reap a child PID if we happen to be its parent. No-op otherwise."""
-    try:
+    with contextlib.suppress(ChildProcessError):
         os.waitpid(pid, os.WNOHANG)
-    except ChildProcessError:
-        pass
 
 
 def serve(
@@ -129,26 +128,22 @@ def serve(
     if cairn_path is not None:
         cmd.extend(["--cairn-path", str(cairn_path)])
 
-    log_fh = open(log_path, "wb")
-    try:
-        proc = subprocess.Popen(  # noqa: S603 - args are constructed, not user input
+    # The child needs its own copy of the log fd; we close ours so we
+    # don't keep the file open after Popen returns.
+    with open(log_path, "wb") as log_fh:
+        proc = subprocess.Popen(
             cmd,
             stdin=subprocess.DEVNULL,
             stdout=log_fh,
             stderr=subprocess.STDOUT,
             start_new_session=True,
         )
-    finally:
-        # Don't keep our copy of the log fd; the child has it.
-        log_fh.close()
 
     try:
         _wait_for_port(host, port)
     except TimeoutError:
-        try:
+        with contextlib.suppress(ProcessLookupError):
             os.kill(proc.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
         raise
 
     info = ServerInfo(
@@ -218,10 +213,8 @@ def stop(*, pid: int | None = None, all_: bool = False, timeout_s: float = 5.0) 
             _reap_if_child(info.pid)
             time.sleep(0.1)
         if _process_alive(info.pid):
-            try:
+            with contextlib.suppress(ProcessLookupError):
                 os.kill(info.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
             # Give the kernel a moment to flip state, then reap.
             for _ in range(20):
                 _reap_if_child(info.pid)

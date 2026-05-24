@@ -19,6 +19,7 @@ from .skills_cmd import app as skills_app
 from .status_cmd import status
 from .validate_cmd import validate
 
+
 def _version_callback(value: bool) -> None:
     if value:
         from .. import __version__

@@ -137,7 +137,7 @@ def scaffold_fixture(
     # 2. Init the cairn via `cairn init` so we exercise the same code path
     #    real users hit. `cairn init <name>` creates `<cwd>/<name>` — so
     #    we run it from the cairns/ parent.
-    _run(_cairn_cmd() + ["init", fix.name, "--no-input"], cwd=cairn_parent)
+    _run([*_cairn_cmd(), "init", fix.name, "--no-input"], cwd=cairn_parent)
 
     # 3. Write cairn.toml pairing (uses the [cairn] table per ADR-0012).
     if fix.paired_via_http:
@@ -178,7 +178,8 @@ def scaffold_fixture(
     #    construction). cairn collaborator/decision/finding are scoped
     #    to a cairn root; we cd into cairn_dir for each.
     for c in fix.collaborators:
-        cmd = _cairn_cmd() + [
+        cmd = [
+            *_cairn_cmd(),
             "collaborator",
             "add",
             "--id",
@@ -202,7 +203,8 @@ def scaffold_fixture(
         _seed_open_questions(cairn_dir, fix.questions)
 
     for d in fix.decisions:
-        cmd = _cairn_cmd() + [
+        cmd = [
+            *_cairn_cmd(),
             "decision",
             "add",
             "--author",
@@ -217,7 +219,8 @@ def scaffold_fixture(
         _run(cmd, cwd=cairn_dir)
 
     for f in fix.findings:
-        cmd = _cairn_cmd() + [
+        cmd = [
+            *_cairn_cmd(),
             "finding",
             "add",
             "--author",

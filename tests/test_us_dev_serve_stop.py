@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import socket
@@ -191,7 +192,5 @@ def test_dev_stop_by_pid_kills_one_server(
         with pytest.raises(ProcessLookupError):
             os.kill(pid, 0)
     finally:
-        try:
+        with contextlib.suppress(ProcessLookupError):
             os.kill(pid, 15)
-        except ProcessLookupError:
-            pass
