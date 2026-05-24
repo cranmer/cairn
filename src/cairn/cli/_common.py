@@ -48,7 +48,7 @@ def _hint_pointer_if_any(start: Path | None) -> None:
         )
 
 
-def require_local_target(target: "CairnPaths | RemoteTarget", command: str) -> CairnPaths:
+def require_local_target(target: CairnPaths | RemoteTarget, command: str) -> CairnPaths:
     """Return *target* as :class:`CairnPaths`, exiting if it is remote.
 
     For commands that have no remote-MCP implementation yet (status,
