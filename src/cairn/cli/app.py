@@ -7,6 +7,7 @@ import typer
 from .action_cmd import app as action_app
 from .collaborator_cmd import app as collaborator_app
 from .decision_cmd import app as decision_app
+from .dev_cmd import app as dev_app
 from .exploration_cmd import app as exploration_app
 from .finding_cmd import app as finding_app
 from .init_cmd import init
@@ -60,6 +61,7 @@ app.command(name="unregister")(unregister)
 app.command(name="registered")(registered)
 app.command(name="mcp")(mcp)
 app.add_typer(skills_app, name="skills")
+app.add_typer(dev_app, name="dev")
 
 
 @app.command(name="version")
