@@ -18,7 +18,6 @@ import os
 import shutil
 import socket
 import subprocess
-import sys
 import time
 import urllib.error
 import urllib.request
@@ -34,7 +33,6 @@ from cairn.cli._common import (
     RemoteTarget,
     _hint_pointer_if_any,
     require_local_target,
-    resolve_target,
 )
 from cairn.cli.app import app
 
@@ -474,7 +472,10 @@ def test_f01_http_server_actually_starts(http_server_endpoint):
         endpoint,
         data=b"{}",
         method="POST",
-        headers={"Content-Type": "application/json", "Accept": "application/json,text/event-stream"},
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json,text/event-stream",
+        },
     )
     try:
         urllib.request.urlopen(req, timeout=3)
