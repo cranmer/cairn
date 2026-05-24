@@ -248,3 +248,187 @@ def test_dev_scaffold_fixture_honors_as_name(
     assert (sandbox / "alt-handle").is_dir()
     registered = load_registry()
     assert any(r.name == "alt-handle" for r in registered)
+
+
+# ---------------------------------------------------------------------------
+# list_fixtures tool + `cairn dev fixtures` CLI
+# ---------------------------------------------------------------------------
+
+
+def test_list_fixtures_tool_returns_catalog_under_dev_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pytest.importorskip("mcp")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.setenv("CAIRN_REGISTRY_PATH", str(tmp_path / "registry.toml"))
+
+    from cairn.dev.fixtures_data import FIXTURES
+    from cairn.mcp.server import build_server
+
+    sandbox = tmp_path / "sandbox"
+    server = build_server(allow_dev_tools=True, sandbox_path=sandbox)
+
+    tool_names = {t.name for t in server._tool_manager.list_tools()}
+    assert "list_fixtures" in tool_names
+
+    result = _call_dev_tool(server, "list_fixtures", {})
+    payload = result.structured_content if hasattr(result, "structured_content") else result
+    if not isinstance(payload, dict):
+        payload = payload[0] if isinstance(payload, list) else payload
+
+    names = {entry["name"] for entry in payload["fixtures"]}
+    assert names == set(FIXTURES)
+    for entry in payload["fixtures"]:
+        s = entry["summary"]
+        assert isinstance(s["collaborators"], list)
+        assert isinstance(s["decisions"], int)
+        assert isinstance(s["questions"], int)
+        assert isinstance(s["findings"], int)
+
+
+def test_list_fixtures_absent_without_dev_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pytest.importorskip("mcp")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.setenv("CAIRN_REGISTRY_PATH", str(tmp_path / "registry.toml"))
+
+    from cairn.mcp.server import build_server
+
+    server = build_server()
+    tool_names = {t.name for t in server._tool_manager.list_tools()}
+    assert "list_fixtures" not in tool_names
+
+
+def test_dev_fixtures_cli_local_lists_catalog(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from typer.testing import CliRunner
+
+    from cairn.cli.app import app
+    from cairn.dev.fixtures_data import FIXTURES
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    runner = CliRunner()
+    result = runner.invoke(app, ["dev", "fixtures"])
+    assert result.exit_code == 0, result.output
+    for name in FIXTURES:
+        assert name in result.output
+
+
+def _stub_call_tool_returning(payload: dict):
+    """Build a stand-in for `cairn.mcp.remote.call_tool` that ignores args
+    and returns *payload*."""
+
+    def _stub(endpoint, tool_name, arguments, *, token=None):
+        return payload
+
+    return _stub
+
+
+def test_dev_fixtures_cli_remote_match(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from typer.testing import CliRunner
+
+    from cairn.cli import dev_cmd
+    from cairn.cli.app import app
+    from cairn.dev.fixtures_data import FIXTURES
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.setenv("CAIRN_BEARER_TOKEN", "tok")
+
+    # Build a "remote" catalog identical to the local one.
+    remote_payload = {
+        "fixtures": [
+            {
+                "name": name,
+                "summary": {
+                    "collaborators": [c.id for c in fix.collaborators],
+                    "decisions": len(fix.decisions),
+                    "questions": len(fix.questions),
+                    "findings": len(fix.findings),
+                },
+            }
+            for name, fix in FIXTURES.items()
+        ]
+    }
+    monkeypatch.setattr("cairn.mcp.remote.call_tool", _stub_call_tool_returning(remote_payload))
+    # Also patch the symbol the CLI imports locally inside its function body.
+    monkeypatch.setattr(dev_cmd, "FIXTURES", FIXTURES, raising=True)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        ["dev", "fixtures", "--remote", "http://srv.example.com/mcp"],
+    )
+    assert result.exit_code == 0, result.output
+    for name in FIXTURES:
+        assert name in result.output
+    assert "match" in result.output
+    assert "drift" not in result.output
+    assert "missing" not in result.output
+
+
+def test_dev_fixtures_cli_remote_detects_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from typer.testing import CliRunner
+
+    from cairn.cli.app import app
+    from cairn.dev.fixtures_data import FIXTURES
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.setenv("CAIRN_BEARER_TOKEN", "tok")
+
+    # Tamper one count so the comparison reports drift; drop another
+    # entirely so we hit the remote-missing branch too.
+    fixtures_iter = iter(FIXTURES.items())
+    first_name, first_fix = next(fixtures_iter)
+    remote_payload = {
+        "fixtures": [
+            {
+                "name": first_name,
+                "summary": {
+                    "collaborators": [c.id for c in first_fix.collaborators],
+                    "decisions": len(first_fix.decisions) + 99,  # drift
+                    "questions": len(first_fix.questions),
+                    "findings": len(first_fix.findings),
+                },
+            },
+            # Skip the second fixture entirely → remote-missing.
+            *[
+                {
+                    "name": name,
+                    "summary": {
+                        "collaborators": [c.id for c in fix.collaborators],
+                        "decisions": len(fix.decisions),
+                        "questions": len(fix.questions),
+                        "findings": len(fix.findings),
+                    },
+                }
+                for i, (name, fix) in enumerate(fixtures_iter)
+                if i != 0
+            ],
+            # And invent a fixture the client doesn't know → client-missing.
+            {
+                "name": "ghost-fixture",
+                "summary": {
+                    "collaborators": [],
+                    "decisions": 0,
+                    "questions": 0,
+                    "findings": 0,
+                },
+            },
+        ]
+    }
+    monkeypatch.setattr("cairn.mcp.remote.call_tool", _stub_call_tool_returning(remote_payload))
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        ["dev", "fixtures", "--remote", "http://srv.example.com/mcp"],
+    )
+    assert result.exit_code != 0  # drift → non-zero exit
+    assert "drift" in result.output
+    assert "remote-missing" in result.output
+    assert "client-missing" in result.output
+    assert "ghost-fixture" in result.output

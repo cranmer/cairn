@@ -78,6 +78,102 @@ def list_() -> None:
         typer.echo(f"pid={s.pid} port={s.port} url={s.url} cairn={s.cairn_path or '-'}")
 
 
+def _summarize_local_catalog() -> dict[str, dict]:
+    return {
+        name: {
+            "collaborators": [c.id for c in fix.collaborators],
+            "decisions": len(fix.decisions),
+            "questions": len(fix.questions),
+            "findings": len(fix.findings),
+        }
+        for name, fix in FIXTURES.items()
+    }
+
+
+def _fmt_summary(s: dict) -> str:
+    return (
+        f"c={len(s.get('collaborators') or [])} "
+        f"d={s.get('decisions', 0)} "
+        f"q={s.get('questions', 0)} "
+        f"f={s.get('findings', 0)}"
+    )
+
+
+@app.command(name="fixtures")
+def fixtures(
+    remote: str | None = typer.Option(
+        None,
+        "--remote",
+        help=(
+            "Compare the local fixture catalog against a remote dev MCP "
+            "server at this URL. Without --remote, prints the local catalog."
+        ),
+    ),
+) -> None:
+    """List the fixture catalog; with --remote, compare against a server.
+
+    Useful before running `cairn dev scaffold-fixture --remote` to check
+    that the client and server agree on fixture contents (see ADR-0013).
+    """
+    local = _summarize_local_catalog()
+
+    if not remote:
+        for name in sorted(local):
+            typer.echo(f"{name:<24} {_fmt_summary(local[name])}")
+        return
+
+    from ..credentials import missing_token_hint, resolve_token
+    from ..mcp.remote import (
+        RemoteAuthError,
+        RemoteCallError,
+        RemoteNetworkError,
+        call_tool,
+    )
+
+    token = resolve_token(remote)
+    if token is None:
+        typer.echo(f"error: {missing_token_hint(remote)}", err=True)
+        raise typer.Exit(code=1)
+    try:
+        result = call_tool(remote, "list_fixtures", {}, token=token)
+    except (RemoteAuthError, RemoteNetworkError, RemoteCallError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from None
+
+    remote_entries = result.get("fixtures") or []
+    remote_catalog: dict[str, dict] = {entry["name"]: entry["summary"] for entry in remote_entries}
+
+    all_names = sorted(set(local) | set(remote_catalog))
+    any_drift = False
+    typer.echo(f"{'fixture':<24} {'local':<22} {'remote':<22} status")
+    for name in all_names:
+        loc = local.get(name)
+        rem = remote_catalog.get(name)
+        if loc is None:
+            status = "client-missing"
+            any_drift = True
+            local_col = "(absent)"
+            remote_col = _fmt_summary(rem) if rem else "(absent)"
+        elif rem is None:
+            status = "remote-missing"
+            any_drift = True
+            local_col = _fmt_summary(loc)
+            remote_col = "(absent)"
+        elif loc == rem:
+            status = "match"
+            local_col = _fmt_summary(loc)
+            remote_col = _fmt_summary(rem)
+        else:
+            status = "drift"
+            any_drift = True
+            local_col = _fmt_summary(loc)
+            remote_col = _fmt_summary(rem)
+        typer.echo(f"{name:<24} {local_col:<22} {remote_col:<22} {status}")
+
+    if any_drift:
+        raise typer.Exit(code=1)
+
+
 @app.command(name="scaffold-fixture")
 def scaffold_fixture(
     name: str = typer.Argument(

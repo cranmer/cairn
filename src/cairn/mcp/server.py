@@ -1317,6 +1317,30 @@ def _register_dev_tools(mcp: FastMCP, sandbox: Path) -> None:
             },
         }
 
+    @mcp.tool(
+        description=(
+            "Dev-only: list the fixtures this server's catalog knows about. "
+            "Returns [{name, summary}] where summary lets a client compare "
+            "its local fixture catalog against the server's to detect drift "
+            "before calling scaffold_fixture."
+        )
+    )
+    def list_fixtures() -> dict[str, Any]:
+        return {
+            "fixtures": [
+                {
+                    "name": name,
+                    "summary": {
+                        "collaborators": [c.id for c in fix.collaborators],
+                        "decisions": len(fix.decisions),
+                        "questions": len(fix.questions),
+                        "findings": len(fix.findings),
+                    },
+                }
+                for name, fix in sorted(FIXTURES.items())
+            ],
+        }
+
 
 def _extract_skill_description(text: str) -> str | None:
     """Pull the `description:` field from a SKILL.md's YAML frontmatter, if any."""
