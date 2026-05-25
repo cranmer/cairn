@@ -1,8 +1,10 @@
-# Quickstart
+# Quickstart — standalone
 
 A five-minute path from a clean machine to a working cairn that your Claude Code sessions can read from and write to. Written for a human reader following along at the terminal.
 
-**Want your agent to do this for you?** See [`AGENT-BOOTSTRAP.md`](AGENT-BOOTSTRAP.md). Paste that file into a fresh Claude Code session and the agent will install Cairn, scaffold a new cairn, and register you as the first collaborator — pausing for your confirmation at each major step.
+This guide assumes the **standalone** setup: cairn lives on your own machine, you talk to it via Claude Code over a local stdio MCP connection, and you don't yet have access to a group cairn running on a shared HTTP server. If a teammate has already set up a group cairn and given you an endpoint URL and credentials, you want [`QUICKSTART-with-server.md`](QUICKSTART-with-server.md) instead.
+
+**Want your agent to do this for you?** See [`AGENT-BOOTSTRAP.md`](AGENT-BOOTSTRAP.md). Paste that file into a fresh Claude Code session and the agent will install Cairn, scaffold a new cairn, and register you as the first collaborator — pausing for your confirmation at each major step. The agent doc handles both the standalone path (here) and the group-server path; it asks at the start which one applies.
 
 ## What you're going to do
 

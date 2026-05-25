@@ -1,8 +1,10 @@
-# Quickstart — joining a group cairn
+# Quickstart — with a group cairn server
 
-You're joining a project whose cairn is already running on a shared HTTP server. The cairn exists, has state, and the team is already writing to it. You're hooking your local machine to it — not creating anything new.
+A five-minute path from a clean machine to a working setup that connects to a cairn already running on a shared HTTP server. The cairn exists, has state, and the team is already writing to it. You're hooking your local machine to it — not creating anything new.
 
-If you're setting up a brand-new personal cairn instead, see [`QUICKSTART.md`](QUICKSTART.md). If you're the one *running* the group server, see `docs/group-deployment.md`.
+This guide assumes the **group-server** setup: a teammate has already set up the cairn MCP server somewhere reachable over HTTP and given you an endpoint URL plus a bearer token. If no group server exists yet — you're getting started with cairn for the first time on your own machine — you want [`QUICKSTART-standalone.md`](QUICKSTART-standalone.md) instead. If you're the one *running* the group server, see [`docs/group-deployment.md`](docs/group-deployment.md).
+
+**Want your agent to do this for you?** See [`AGENT-BOOTSTRAP.md`](AGENT-BOOTSTRAP.md). Paste that file into a fresh Claude Code session and the agent will install Cairn, set up your credentials, and pair your project repo with the remote cairn — pausing for your confirmation at each major step. The agent doc handles both the standalone path and the group-server path (here); it asks at the start which one applies.
 
 ## What you need from your team
 
