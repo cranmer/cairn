@@ -102,7 +102,38 @@ claude mcp list           # should show `cairn-remote`
 
 **Restart any open Claude Code sessions** to pick up the new MCP server.
 
-## Step 7 — Verify
+## Step 7 — Allow cairn MCP tools without per-call prompts
+
+By default Claude Code asks you to confirm every MCP tool call. After the first few `add_finding` / `status` confirmations you'll want to allow them en masse.
+
+Add the remote cairn's tools to the `permissions.allow` list in a `settings.json`. The pattern for MCP tools is `mcp__<server>__<tool>`, and you can wildcard the tool with `*`. Note that the server name here is whatever you passed to `claude mcp add` in Step 6 — `cairn-remote` in the example. To allow every tool from the remote cairn:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__cairn-remote__*"
+    ]
+  }
+}
+```
+
+**Where to put it** — pick one based on scope:
+
+| Scope | File | Notes |
+|---|---|---|
+| User-wide (all projects) | `~/.claude/settings.json` | Best if you use this cairn from many repos |
+| Project, shared | `<project>/.claude/settings.json` | Checked into git — teammates get it too |
+| Project, local only | `<project>/.claude/settings.local.json` | Gitignored — just you |
+
+**More targeted alternatives** if you don't want to blanket-allow:
+
+- Allow only read-only tools: `"mcp__cairn-remote__status"`, `"mcp__cairn-remote__get_*"`, `"mcp__cairn-remote__list_*"`.
+- Keep writes (e.g. `add_decision`, `add_finding`, `close_exploration`) gated by a prompt — leave them off the allow list.
+
+You can also manage these interactively with `/permissions` inside a Claude Code session instead of editing JSON by hand.
+
+## Step 8 — Verify
 
 Open Claude Code in your project repo and ask:
 

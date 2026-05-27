@@ -117,7 +117,38 @@ claude mcp list           # should show `cairn` in the list
 
 **Restart any open Claude Code sessions** so they pick up the new MCP server. New sessions started after this point will have the cairn tools available immediately.
 
-## Step 5 — Link the project repo with the cairn
+## Step 5 — Allow cairn MCP tools without per-call prompts
+
+By default Claude Code asks you to confirm every MCP tool call. After the first few `add_finding` / `status` confirmations you'll want to allow them en masse.
+
+Add cairn's tools to the `permissions.allow` list in a `settings.json`. The pattern for MCP tools is `mcp__<server>__<tool>`, and you can wildcard the tool with `*`. To allow every cairn tool:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__cairn__*"
+    ]
+  }
+}
+```
+
+**Where to put it** — pick one based on scope:
+
+| Scope | File | Notes |
+|---|---|---|
+| User-wide (all projects) | `~/.claude/settings.json` | Best if you use cairn from many repos |
+| Project, shared | `<project>/.claude/settings.json` | Checked into git — teammates get it too |
+| Project, local only | `<project>/.claude/settings.local.json` | Gitignored — just you |
+
+**More targeted alternatives** if you don't want to blanket-allow:
+
+- Allow only read-only tools: `"mcp__cairn__status"`, `"mcp__cairn__get_*"`, `"mcp__cairn__list_*"`.
+- Keep writes (e.g. `add_decision`, `add_finding`, `close_exploration`) gated by a prompt — leave them off the allow list.
+
+You can also manage these interactively with `/permissions` inside a Claude Code session instead of editing JSON by hand.
+
+## Step 6 — Link the project repo with the cairn
 
 So that agents working in your project repo discover the right cairn from cwd, without any flag:
 
@@ -130,7 +161,7 @@ This writes a small `cairn.toml` at the project repo root naming which cairn (by
 
 For Scenario A, your "project repo" may not exist yet; you can run `cairn link` later when it does. For Scenario B, do it now.
 
-## Step 6 — Open a session and check it works
+## Step 7 — Open a session and check it works
 
 Open Claude Code in your project repo (Scenario B) or the cairn directory (Scenario A) and ask:
 

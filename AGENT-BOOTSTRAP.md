@@ -175,6 +175,12 @@ Tell the user explicitly:
 
 > *"I've registered the cairn MCP server with Claude Code. To pick up the change in any currently-running Claude Code sessions, you'll need to restart them. New sessions started from this point will have the cairn tools available automatically."*
 
+Also mention the per-call-prompt friction and the fix so they're not surprised the first time they ask the agent to log something:
+
+> *"By default Claude Code asks you to confirm every MCP tool call. To allow all cairn tools en masse, add `\"mcp__cairn__*\"` to the `permissions.allow` list in `~/.claude/settings.json` (user-wide), `<project>/.claude/settings.json` (shared with teammates via git), or `<project>/.claude/settings.local.json` (just you). The pattern is `mcp__<server>__<tool>` — wildcard with `*`. You can also manage this interactively via `/permissions` instead of editing JSON. See QUICKSTART-standalone.md Step 5 for read-only-tool-only patterns if you'd rather keep writes gated."*
+
+Do **not** edit the user's settings.json on their behalf — let them choose the scope.
+
 ### Step 8S — Pair the project repo (optional, recommended for Scenario B)
 
 If the user has a project repo and wants agents working in it to discover the cairn automatically:
@@ -308,6 +314,12 @@ claude mcp list   # `cairn-remote` should appear
 Tell the user explicitly:
 
 > *"I've registered the remote cairn MCP with Claude Code. To pick up the change in any currently-running Claude Code sessions, restart them. New sessions from this point will have the cairn's tools available automatically."*
+
+Also mention the per-call-prompt friction and the fix:
+
+> *"By default Claude Code asks you to confirm every MCP tool call. To allow all remote-cairn tools en masse, add `\"mcp__cairn-remote__*\"` (the server name you just used in `claude mcp add`) to the `permissions.allow` list in `~/.claude/settings.json` (user-wide), `<project>/.claude/settings.json` (shared via git), or `<project>/.claude/settings.local.json` (just you). You can also manage this via `/permissions` interactively. See QUICKSTART-with-server.md Step 7 for read-only-tool-only patterns if you'd rather keep writes gated."*
+
+Do **not** edit the user's settings.json on their behalf — let them choose the scope.
 
 ### Step 9J — When you're done (group-server)
 
