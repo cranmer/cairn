@@ -61,6 +61,35 @@ def test_whoami_returns_cairn_metadata(cairn_root: Path):
     assert any(c["id"] == "kyle" for c in out["collaborators"])
 
 
+def test_whoami_defaults_server_block_to_stdio(cairn_root: Path):
+    """When build_server() is called without transport_info (the test path),
+    `whoami` reports the stdio default. This is the natural shape for any
+    in-process invocation and what `_call` exercises here."""
+    out = _call("whoami", {})
+    assert "server" in out
+    assert out["server"]["transport"] == "stdio"
+    assert out["server"]["endpoint"] is None
+    assert "c" in out["server"]["registered_cairns"]
+
+
+def test_whoami_reports_http_endpoint_when_built_with_one(cairn_root: Path):
+    """build_server(transport_info=...) flows the transport details through
+    to whoami's `server` block."""
+    server = build_server(
+        transport_info={
+            "transport": "streamable-http",
+            "endpoint": "http://127.0.0.1:8765/mcp",
+        }
+    )
+    result = asyncio.get_event_loop().run_until_complete(
+        server.call_tool("whoami", {})
+    )
+    _, structured = result
+    out = structured["result"] if "result" in structured and len(structured) == 1 else structured
+    assert out["server"]["transport"] == "streamable-http"
+    assert out["server"]["endpoint"] == "http://127.0.0.1:8765/mcp"
+
+
 def test_status_returns_project_state(cairn_root: Path):
     out = _call("status", {"cairn": "c"})
     assert out["project_name"] == "c"
