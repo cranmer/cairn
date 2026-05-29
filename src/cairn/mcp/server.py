@@ -186,9 +186,21 @@ live capture begins.
 """
 
 
-def build_server() -> FastMCP:
-    """Construct the FastMCP server and register the Tier-1 tools."""
+def build_server(transport_info: dict[str, Any] | None = None) -> FastMCP:
+    """Construct the FastMCP server and register the Tier-1 tools.
+
+    Parameters
+    ----------
+    transport_info
+        Optional dict describing the transport the server will run under
+        (passed to :func:`whoami` so it can answer "where am I?"). When
+        ``None``, the server is assumed to be on stdio. Expected keys:
+        ``"transport"`` (str: ``stdio``/``streamable-http``/``sse``) and
+        for HTTP transports ``"endpoint"`` (str: the URL clients reach
+        the server at, e.g. ``http://127.0.0.1:8765/mcp``).
+    """
     mcp = FastMCP(name="cairn", instructions=SERVER_INSTRUCTIONS)
+    transport_info = transport_info or {"transport": "stdio", "endpoint": None}
 
     # ---- Identity / status ------------------------------------------------
 
@@ -205,6 +217,7 @@ def build_server() -> FastMCP:
         entry, paths = _resolve(cairn)
         collabs = load_collaborators(paths)
         suggested = _suggest_collaborator_match(paths, collabs)
+        all_registered = load_registry()
         return {
             "cairn": entry.name,
             "cairn_path": str(paths.root),
@@ -214,6 +227,11 @@ def build_server() -> FastMCP:
                 {"id": c.id, "name": c.name, "email": c.email, "github": c.github}
                 for c in collabs
             ],
+            "server": {
+                "transport": transport_info.get("transport", "stdio"),
+                "endpoint": transport_info.get("endpoint"),
+                "registered_cairns": [r.name for r in all_registered],
+            },
         }
 
     @mcp.tool(description="Compact project-state summary for a cairn.")
