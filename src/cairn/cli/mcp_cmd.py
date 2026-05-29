@@ -162,9 +162,17 @@ def mcp(
         registry_mod.load_registry = patched_load_registry  # type: ignore[assignment]
 
     _ensure_registry_loadable()
+    if transport == "stdio":
+        transport_info = {"transport": "stdio", "endpoint": None}
+    else:
+        transport_info = {
+            "transport": transport,
+            "endpoint": f"http://{host}:{port}{path}",
+        }
     server = build_server(
         allow_dev_tools=allow_dev_tools,
         sandbox_path=sandbox_path,
+        transport_info=transport_info,
     )
 
     if transport == "stdio":

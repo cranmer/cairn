@@ -302,9 +302,9 @@ name = "coral-bleach"</code></pre>
     <div class="section-number">§4 — Why this shape</div>
     <h2>One server, many cairns. cwd as discriminator.</h2>
 
-    <p>An earlier design considered one MCP server per cairn — a process forest, one per project. It's tidy in isolation but doesn't scale to a researcher with four projects: four servers to register with Claude Code, four to restart when something changes. The user-level registry collapses that to one server and a tiny config file.</p>
+    <p>A natural temptation would be one MCP server per cairn — a process forest, one per project. It's tidy in isolation but doesn't scale to a researcher with four projects: four servers to register with Claude Code, four to restart when something changes. The user-level registry collapses that to one server and a tiny config file.</p>
 
-    <p>An alternative was a Claude Code "session-level cairn selection" — pick one cairn when the session starts, remember it. That breaks the moment Kyle wants to log a quick cross-project note without alt-tabbing to a different window. The cwd-as-discriminator design lets the obvious place to do work — the project repo — also be the obvious place to capture about it.</p>
+    <p>Another natural shape would be Claude Code "session-level cairn selection" — pick one cairn when the session starts, remember it. That breaks the moment Kyle wants to log a quick cross-project note without alt-tabbing to a different window. The cwd-as-discriminator approach lets the obvious place to do work — the project repo — also be the obvious place to capture about it.</p>
 
     <p>The cost of this design is that Kyle's project repos all need <code>cairn.toml</code> at their roots. That's one file, written once via <code>cairn link</code>, checked into git so the rest of the team picks it up automatically. The benefit is that <em>everywhere</em> Kyle naturally is — the project he's working on — is also where the agent already knows to write.</p>
   </div>

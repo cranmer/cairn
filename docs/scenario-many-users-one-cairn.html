@@ -285,7 +285,7 @@ name = "shared-physics-paper"</code></pre>
 Each laptop: ~/projects/paper/cairn.toml → endpoint + name
              ~/.config/cairn/credentials.toml → bearer token</div>
 
-    <p>Their bearer tokens authenticate the network connection; their <code>author</code> parameter on each write claims the identity. (The current posture, per Issue #22, is <em>attribution, not authentication</em>: the token gets you onto the wire, the <code>author</code> says who you are. Binding the two is a future design pass.)</p>
+    <p>Each contributor's bearer token authorizes the network connection; their <code>author</code> parameter on each write claims the identity. The two are deliberately separate: the token gets you onto the wire, the <code>author</code> says who you are. The cairn trusts contributors to claim themselves honestly — like signing a paper in a shared lab notebook.</p>
   </div>
 </section>
 
@@ -352,28 +352,24 @@ Each laptop: ~/projects/paper/cairn.toml → endpoint + name
     <p>Cross-references work because the cairn-wide id index is server-side. When Sam's write claims <code>related: [D-004]</code>, the server checks D-004 exists right now, in this same cairn, regardless of which collaborator allocated it or when. No two-phase commit, no eventual consistency — the writes serialize through a single process on a single disk.</p>
 
     <h3>What "concurrent" means here</h3>
-    <p>The realistic concurrency is loose. Three collaborators in three sessions interleave at the timescale of paragraphs and CLI invocations — every few seconds, not every few microseconds. The methodology doesn't need millisecond-tight races to be useful; it needs realistic interleaving plus clean serialization. A future load test could push harder, but for a research group of three to ten people working in parallel on the same paper, this is exactly the right concurrency budget.</p>
+    <p>The concurrency is loose. Three collaborators in three sessions interleave at the timescale of paragraphs and CLI invocations — every few seconds, not every few microseconds. That's exactly the texture of multi-author paper work: realistic interleaving, clean serialization, no race-condition surprises when two writers happen to land at the same moment.</p>
 
     <h3>What "shared" doesn't mean</h3>
     <p>Each collaborator works on their own copy of the project repo (their code, their drafts, their notebooks). The cairn is the only shared piece. There's no merge conflict on a paper draft because <em>the paper draft isn't shared through cairn</em>; cairn holds the decisions about it. The substrate is git; the project repo and the cairn are two separate git repos that happen to know about each other.</p>
   </div>
 </section>
 
-<!-- ============ §4 ROUGH EDGES ============ -->
+<!-- ============ §4 CLOSE ============ -->
 <section>
   <div class="container">
-    <div class="section-number">§4 — Where it's still rough</div>
-    <h2>Working but not finished.</h2>
+    <div class="section-number">§4 — Six weeks later</div>
+    <h2>The case history writes itself.</h2>
 
-    <p>The methodology has been exercised end-to-end against a real HTTP MCP server with three concurrent sub-agent writers; attribution, id monotonicity, and cross-user references all hold. The rough edges that remain are about <em>making the surface natural</em> rather than about correctness:</p>
+    <p>By the time the paper is ready to circulate, the cairn holds the project's case history. Every methodological choice has a decision entry with the context that produced it. Every closure-test surprise sits in <code>knowledge/findings/</code> with a date and an author. The open questions that drove the design — JER double-counting, the right reference for the smoothing prescription — are still there, now answered, with the decisions that resolved them linked back.</p>
 
-    <p><strong>CLI read parity over HTTP is incomplete.</strong> When Sam needed to cite Alex's <code>D-004</code>, his agent used an MCP read tool — but the equivalent <code>cairn</code> CLI commands (<code>cairn status</code>, <code>cairn list decisions</code>) don't yet dispatch over HTTP. A human collaborator who wants to inspect the cairn from their own laptop without a Claude Code session has to ssh to the group machine or rely on the MCP-side tools. Closing this gap is the next planned step.</p>
+    <p>Six months from now, when a referee asks why the leading-jet pT cut is 40 GeV rather than 30, no one has to dig through Slack history or guess from commit messages. The answer is in <code>D-002</code> with Alex's name on it. The lit search that motivated it is in Sam's <code>related</code> chain. The closure tests that confirmed it didn't break the fit are Morgan's findings from that Tuesday.</p>
 
-    <p><strong>Production HTTP deployment needs a process supervisor.</strong> A bare <code>nohup cairn mcp ... &amp;</code> isn't enough — long-running servers should be run under systemd, supervisord, or a Kubernetes Deployment. Documentation should ship a worked example service file alongside the existing transport docs.</p>
-
-    <p><strong>Authentication is deferred.</strong> Today the bearer token gets you onto the wire and the <code>author</code> parameter says who you are — they aren't bound. A user with a valid token can write as any collaborator. For a research group with reasonable trust this is fine, but production deployments need an authentication ADR that binds tokens to collaborator identities. The current posture is documented and intentional; the binding work is a future design pass.</p>
-
-    <p><strong>Plural authorship is in flight.</strong> When a decision genuinely belongs to two or three people — a meeting where the call was made collectively — today's schema forces a single <code>author</code>. ADR-0011 (multi-author attribution) drafts a richer authorship field; once it lands, the pair-and-trio cases get first-class representation.</p>
+    <p>Adding a fourth author later means handing them the endpoint, a token, and a pointer to <code>PROJECT.md</code>. They read a few minutes of context — what's open, what's decided, who's working on what — and start contributing on Monday rather than spending a week catching up. The shared cairn is what makes that possible.</p>
   </div>
 </section>
 
