@@ -1,10 +1,11 @@
 """`cairn mcp` — run the MCP server over stdio or HTTP.
 
-See ADR-0009, ADR-0010, and ADR-0012. Requires the ``[mcp]`` install extra.
+See ADR-0009, ADR-0010, ADR-0012, and ADR-0013. Requires the ``[mcp]`` install extra.
 """
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import typer
@@ -61,6 +62,43 @@ def mcp(
         "--path",
         help="URL path for the MCP endpoint in HTTP transports (default: /mcp).",
     ),
+    allowed_host: list[str] = typer.Option(
+        [],
+        "--allowed-host",
+        help=(
+            "Extra Host header values to accept for HTTP transports (repeatable). "
+            "Required when fronting the server with a reverse proxy under a public "
+            "hostname, since the MCP SDK's DNS-rebinding protection otherwise only "
+            "accepts 127.0.0.1/localhost. Example: "
+            "--allowed-host cairn.example.com"
+        ),
+    ),
+    registry_path: Path | None = typer.Option(
+        None,
+        "--registry-path",
+        help=(
+            "Override the registry file location for this server only. "
+            "Sets CAIRN_REGISTRY_PATH in-process. Used by `cairn dev serve` "
+            "to give each dev server its own sandboxed registry (ADR-0013)."
+        ),
+    ),
+    allow_dev_tools: bool = typer.Option(
+        False,
+        "--allow-dev-tools",
+        help=(
+            "Register dev-only MCP tools (currently: scaffold_fixture). "
+            "Off by default; production deployments must NOT pass this. "
+            "`cairn dev serve` always passes it (ADR-0013)."
+        ),
+    ),
+    sandbox_path: Path | None = typer.Option(
+        None,
+        "--sandbox-path",
+        help=(
+            "Directory under which the scaffold_fixture dev tool writes "
+            "cairns. Required when --allow-dev-tools is set."
+        ),
+    ),
 ) -> None:
     """Run the MCP server over stdio (default) or HTTP."""
     if transport not in _VALID_TRANSPORTS:
@@ -70,6 +108,16 @@ def mcp(
             err=True,
         )
         raise typer.Exit(code=1)
+
+    if registry_path is not None:
+        os.environ["CAIRN_REGISTRY_PATH"] = str(registry_path.expanduser())
+
+    if allow_dev_tools and sandbox_path is None:
+        typer.echo(
+            "error: --allow-dev-tools requires --sandbox-path.",
+            err=True,
+        )
+        raise typer.Exit(code=2)
 
     try:
         from ..mcp.server import _ensure_registry_loadable, build_server
@@ -114,7 +162,6 @@ def mcp(
         registry_mod.load_registry = patched_load_registry  # type: ignore[assignment]
 
     _ensure_registry_loadable()
-
     if transport == "stdio":
         transport_info = {"transport": "stdio", "endpoint": None}
     else:
@@ -122,7 +169,11 @@ def mcp(
             "transport": transport,
             "endpoint": f"http://{host}:{port}{path}",
         }
-    server = build_server(transport_info=transport_info)
+    server = build_server(
+        allow_dev_tools=allow_dev_tools,
+        sandbox_path=sandbox_path,
+        transport_info=transport_info,
+    )
 
     if transport == "stdio":
         server.run()
@@ -131,6 +182,35 @@ def mcp(
     # mcp>=1.27 takes host/port/path via settings, not run() kwargs.
     server.settings.host = host
     server.settings.port = port
+    if allowed_host:
+        # Extend the SDK's default localhost allowlist rather than replace it,
+        # so docker-internal health checks and Traefik's forwarded request both
+        # work. The SDK matches "host:*" against "host:port", so we add both
+        # the bare hostname (no port — matches Host: cairn.example.com) and
+        # a "host:*" variant for completeness.
+        from mcp.server.transport_security import TransportSecuritySettings
+
+        existing = server.settings.transport_security
+        existing_hosts = list(existing.allowed_hosts) if existing else []
+        existing_origins = list(existing.allowed_origins) if existing else []
+        for h in allowed_host:
+            if h not in existing_hosts:
+                existing_hosts.append(h)
+            wildcard = f"{h}:*"
+            if wildcard not in existing_hosts:
+                existing_hosts.append(wildcard)
+            for scheme in ("https", "http"):
+                origin = f"{scheme}://{h}"
+                if origin not in existing_origins:
+                    existing_origins.append(origin)
+                origin_wildcard = f"{scheme}://{h}:*"
+                if origin_wildcard not in existing_origins:
+                    existing_origins.append(origin_wildcard)
+        server.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=existing_hosts,
+            allowed_origins=existing_origins,
+        )
     if transport == "streamable-http":
         server.settings.streamable_http_path = path
         server.run(transport="streamable-http")
@@ -145,5 +225,6 @@ def _default_name_for(p: Path) -> str:
     if base.endswith("-cairn"):
         base = base[: -len("-cairn")]
     import re
+
     base = re.sub(r"[^a-z0-9-]+", "-", base.lower()).strip("-")
     return base or "cairn"

@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install (editable)
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,mcp]"
       - name: Configure git identity for tests
         run: |
           git config --global user.name  "CI Tester"

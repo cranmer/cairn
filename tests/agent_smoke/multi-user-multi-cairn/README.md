@@ -71,19 +71,63 @@ The aggregate report is committed under `runs/<timestamp>/SYNTHESIS.md` so futur
 
 ## Execution recipe
 
-When the plan is approved, the execution sequence is:
+Fixture setup and HTTP-server lifecycle are exposed as `cairn dev`
+subcommands (US-T-01) so the orchestrator (and any sub-agent driving
+this methodology) doesn't reinvent the setup on every run.
 
-1. **Set up fixtures.** Build the three fictional project skeletons in tmpdir. Each gets a synthesized git history, a README, and any other minimum-viable artifacts the scenario calls for.
+### Scenario 1 — one user, many cairns
 
-2. **Set up cairns.** Scaffold the cairns the scenarios need. For scenario 1, two cairns owned by one user; for scenario 2, one cairn with three pre-registered collaborators.
+```bash
+RUN_DIR=$(mktemp -d -t cairn-multi-XXXX)
+export XDG_CONFIG_HOME="$RUN_DIR/config"
 
-3. **For scenario 1**: launch ~2–3 parallel sub-agents (via the Agent tool with `run_in_background=true`), each pointed at a different cairn. Wait for completion. Collect feedback files.
+# Each fixture call materializes <RUN_DIR>/projects/<name>/ (with cairn.toml
+# + synthesized git history) and <RUN_DIR>/cairns/<name>/ (a real cairn
+# with collaborators / decisions / open questions / findings seeded via
+# the CLI). Schema-valid by construction.
+cairn dev scaffold-fixture coral-bleach --dest "$RUN_DIR"
+cairn dev scaffold-fixture lit-monitor  --dest "$RUN_DIR"
 
-4. **For scenario 2**: launch ~3 parallel sub-agents, each as a distinct collaborator working in the same cairn. Wait for completion. Collect feedback files.
+# Register both cairns in this run's isolated registry.
+cairn register --name coral-bleach "$RUN_DIR/cairns/coral-bleach"
+cairn register --name lit-monitor  "$RUN_DIR/cairns/lit-monitor"
 
-5. **Synthesize.** Read all feedback, write `SYNTHESIS.md`, commit.
+# ... launch sub-agents in parallel via the Agent tool ...
+```
 
-6. **Decide.** Based on synthesis: file issues for technical bugs, draft ADRs for design tensions, open follow-up PRs for low-cost fixes.
+### Scenario 2 — many users, one cairn (HTTP)
+
+```bash
+RUN_DIR=$(mktemp -d -t cairn-multi-XXXX)
+export XDG_CONFIG_HOME="$RUN_DIR/config"
+
+# Start the HTTP MCP server first — it picks a free port and writes
+# state under $XDG_CACHE_HOME/cairn/dev-servers/. Output line is
+# `started pid=... port=... url=... log=...`.
+SERVE_OUT=$(cairn dev serve)
+URL=$(printf '%s\n' "$SERVE_OUT" | sed -n 's/.*url=\([^ ]*\).*/\1/p')
+
+# Scaffold the fixture pointing at the live server URL. The resulting
+# cairn.toml is in remote-MCP mode (endpoint + name).
+cairn dev scaffold-fixture shared-physics-paper \
+  --dest "$RUN_DIR" --http-endpoint "$URL"
+cairn register --name shared-physics-paper "$RUN_DIR/cairns/shared-physics-paper"
+
+# ... launch sub-agents in parallel via the Agent tool ...
+
+# Clean teardown at the end:
+cairn dev stop --all
+```
+
+After fixtures are up, the rest of the methodology stays the same:
+
+1. **For scenario 1**: launch ~2–3 parallel sub-agents (via the Agent tool with `run_in_background=true`), each pointed at a different cairn. Wait for completion. Collect feedback files.
+
+2. **For scenario 2**: launch ~3 parallel sub-agents, each as a distinct collaborator working in the same cairn. Wait for completion. Collect feedback files.
+
+3. **Synthesize.** Read all feedback, write `SYNTHESIS.md`, commit.
+
+4. **Decide.** Based on synthesis: file issues for technical bugs, draft ADRs for design tensions, open follow-up PRs for low-cost fixes.
 
 The scenarios are designed to be **idempotent and isolated** — each run uses fresh tmpdirs, fresh registry configs, and fresh sub-agent contexts. Re-running is safe and produces a clean comparison set.
 

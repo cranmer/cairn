@@ -24,8 +24,8 @@ import urllib.request
 from pathlib import Path
 from unittest.mock import patch
 
-import click
 import pytest
+import typer
 from typer.testing import CliRunner
 
 from cairn.cairn_toml import write_pointer
@@ -198,7 +198,7 @@ def test_f03_require_local_target_rejects_remote_clearly():
     remote = RemoteTarget(
         endpoint="http://127.0.0.1:9999/mcp", cairn_name="my-cairn", token=None
     )
-    with pytest.raises(click.exceptions.Exit) as exc_info:
+    with pytest.raises(typer.Exit) as exc_info:
         require_local_target(remote, "status")
     assert exc_info.value.exit_code == 1
 

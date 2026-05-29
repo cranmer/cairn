@@ -35,6 +35,22 @@ _CLIENT_INFO = {"name": "cairn-cli", "version": "0"}
 _SESSION_HEADER = "Mcp-Session-Id"
 _ACCEPT = "application/json, text/event-stream"
 
+# Identity envelope headers — set on every request so the server can attribute
+# the caller (whoami, future audit) without per-tool argument churn.
+_IDENTITY_EMAIL_HEADER = "X-Cairn-Git-Email"
+_IDENTITY_NAME_HEADER = "X-Cairn-Git-Name"
+
+
+def _resolve_caller_identity() -> tuple[str | None, str | None]:
+    """Best-effort local git identity lookup; never raises."""
+    try:
+        from ..git_ops import get_user_identity
+
+        ident = get_user_identity(None)
+        return ident.email, ident.name
+    except Exception:
+        return None, None
+
 
 class RemoteError(Exception):
     """Base for all remote-dispatch errors."""
@@ -123,9 +139,7 @@ def _initialize_session(endpoint: str, token: str | None) -> str:
     return session_id
 
 
-def _send_initialized_notification(
-    endpoint: str, token: str | None, session_id: str
-) -> None:
+def _send_initialized_notification(endpoint: str, token: str | None, session_id: str) -> None:
     """POST the initialized notification (no response expected)."""
     payload = {"jsonrpc": "2.0", "method": "notifications/initialized"}
     _post(endpoint, token, session_id, payload, expect_response=False)
@@ -168,6 +182,11 @@ def _post(
         headers["Authorization"] = f"Bearer {token}"
     if session_id:
         headers[_SESSION_HEADER] = session_id
+    email, name = _resolve_caller_identity()
+    if email:
+        headers[_IDENTITY_EMAIL_HEADER] = email
+    if name:
+        headers[_IDENTITY_NAME_HEADER] = name
 
     req = urllib.request.Request(endpoint, data=body, headers=headers, method="POST")
     try:
@@ -183,13 +202,9 @@ def _post(
             err_body = exc.read().decode(errors="replace")
         except Exception:
             err_body = ""
-        raise RemoteCallError(
-            f"HTTP {exc.code} from {endpoint}: {err_body[:200]}"
-        ) from None
+        raise RemoteCallError(f"HTTP {exc.code} from {endpoint}: {err_body[:200]}") from None
     except urllib.error.URLError as exc:
-        raise RemoteNetworkError(
-            f"could not reach {endpoint}: {exc.reason}"
-        ) from None
+        raise RemoteNetworkError(f"could not reach {endpoint}: {exc.reason}") from None
     except OSError as exc:
         raise RemoteNetworkError(f"network error calling {endpoint}: {exc}") from None
 
@@ -203,9 +218,7 @@ def _decode_jsonrpc(endpoint: str, raw: bytes) -> dict[str, Any]:
     try:
         return json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise RemoteCallError(
-            f"unexpected non-JSON response from {endpoint}: {exc}"
-        ) from None
+        raise RemoteCallError(f"unexpected non-JSON response from {endpoint}: {exc}") from None
 
 
 def _extract_tool_result(endpoint: str, data: dict[str, Any]) -> dict[str, Any]:
@@ -217,9 +230,7 @@ def _extract_tool_result(endpoint: str, data: dict[str, Any]) -> dict[str, Any]:
 
     result = data.get("result")
     if result is None:
-        raise RemoteCallError(
-            f"unexpected MCP response shape from {endpoint}: {data}"
-        )
+        raise RemoteCallError(f"unexpected MCP response shape from {endpoint}: {data}")
 
     # MCP tools/call wraps the payload under result.content[0].text (JSON string)
     # or directly as result if FastMCP serialised it flat.
@@ -243,7 +254,7 @@ def _parse_sse_response(raw: bytes) -> dict[str, Any]:
     """Extract the JSON-RPC response from an SSE data stream."""
     for line in raw.decode(errors="replace").splitlines():
         if line.startswith("data:"):
-            payload = line[len("data:"):].strip()
+            payload = line[len("data:") :].strip()
             if payload and payload != "[DONE]":
                 try:
                     return json.loads(payload)

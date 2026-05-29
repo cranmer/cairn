@@ -44,9 +44,11 @@ def cairn_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def _call(tool: str, args: dict) -> dict | list:
     """Invoke a tool, return the structured-content payload."""
     server = build_server()
-    result = asyncio.get_event_loop().run_until_complete(
-        server.call_tool(tool, args)
-    )
+    # ``asyncio.run`` creates a fresh loop per call and tears it down cleanly,
+    # so this helper composes with other tests that also use ``asyncio.run``
+    # (which clears the current-loop reference on exit and would break the
+    # deprecated ``get_event_loop().run_until_complete(...)`` pattern).
+    result = asyncio.run(server.call_tool(tool, args))
     # FastMCP returns (content_list, structured_content) tuples.
     _, structured = result
     if isinstance(structured, dict) and "result" in structured and len(structured) == 1:
@@ -81,9 +83,7 @@ def test_whoami_reports_http_endpoint_when_built_with_one(cairn_root: Path):
             "endpoint": "http://127.0.0.1:8765/mcp",
         }
     )
-    result = asyncio.get_event_loop().run_until_complete(
-        server.call_tool("whoami", {})
-    )
+    result = asyncio.run(server.call_tool("whoami", {}))
     _, structured = result
     out = structured["result"] if "result" in structured and len(structured) == 1 else structured
     assert out["server"]["transport"] == "streamable-http"
